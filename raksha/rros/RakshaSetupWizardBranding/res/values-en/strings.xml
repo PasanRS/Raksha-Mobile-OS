@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="app_name">Raksha Mobile OS Setup</string>
+    <string name="os_name">Raksha Mobile OS</string>
+    <string name="setup_services">Raksha Mobile OS features</string>
+    <string name="services_metrics_title">Local diagnostics (disabled)</string>
+    <string name="services_metrics_label">%1$s keeps diagnostic data local and sends no usage data to %2$s or any external server for %3$s.</string>
+    <string name="services_privacy_policy_uri">https://raksha.local/privacy</string>
+    <string name="update_recovery_title">Raksha Mobile OS Recovery</string>
+    <string name="update_recovery_setting">Keep recovery synced with Raksha Mobile OS</string>
+    <string name="update_recovery_description">Managed by host recovery in OneOS mode.</string>
+    </resources>

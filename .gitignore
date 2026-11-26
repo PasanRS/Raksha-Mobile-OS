@@ -1,0 +1,8 @@
+*.img
+*.img.gz
+*.apk
+*.idsig
+*.zip
+*.tar.xz
+*.gguf
+.DS_Store

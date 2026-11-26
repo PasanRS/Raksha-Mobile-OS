@@ -1,0 +1,73 @@
+#!/system/bin/sh
+# Raksha Mobile OS — Native On-Device Qwen3.5-4B Inference Server (Loopback 127.0.0.1:8081)
+# Tuned for Snapdragon 8 Elite Gen 5 (Galaxy S26 Ultra) & Snapdragon 8 Gen 2 (Galaxy S23 Ultra)
+MODEL="${RAKSHA_LLM_MODEL:-/system/etc/openclaw/models/Qwen3.5-4B-Q4_K_M.gguf}"
+HOST="127.0.0.1"
+PORT="${RAKSHA_LLM_PORT:-8081}"
+CTX="${RAKSHA_LLM_CTX:-16384}"
+THREADS="${RAKSHA_LLM_THREADS:-6}"
+BATCH_THREADS="${RAKSHA_LLM_BATCH_THREADS:-6}"
+REASONING_BUDGET="${RAKSHA_LLM_REASONING_BUDGET:-0}"
+WORK="/data/local/openclaw"
+PID_FILE="$WORK/llama-server.pid"
+LOG_FILE="$WORK/llama-server.log"
+mkdir -p "$WORK" 2>/dev/null || { WORK="${TMPDIR:-/tmp}/openclaw"; mkdir -p "$WORK"; }
+
+pick_backend() {
+    if LD_LIBRARY_PATH="/system/opt/llama/snapdragon/lib:/vendor/lib64:/vendor/lib64/egl" \
+       /system/opt/llama/snapdragon/bin/llama-server --version >/dev/null 2>&1; then
+        BIN="/system/opt/llama/snapdragon/bin/llama-server"
+        LIB="/system/opt/llama/snapdragon/lib:/vendor/lib64:/vendor/lib64/egl"
+        BACKEND="snapdragon-npu-opencl"
+    else
+        BIN="/system/opt/llama/cpu/llama-server"
+        LIB="/system/opt/llama/cpu"
+        BACKEND="armv9.2-cpu"
+    fi
+}
+
+case "${1:-start}" in
+    start|daemon)
+        if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+            echo "raksha-llama-server already running (PID $(cat "$PID_FILE")) on http://$HOST:$PORT"
+            exit 0
+        fi
+        pick_backend
+        echo "Starting native llama-server ($BACKEND) with Qwen3.5-4B on http://$HOST:$PORT ..."
+        LD_LIBRARY_PATH="$LIB" "$BIN" \
+            -m "$MODEL" \
+            --host "$HOST" \
+            --port "$PORT" \
+            --ctx-size "$CTX" \
+            --parallel 1 \
+            --threads "$THREADS" \
+            --threads-batch "$BATCH_THREADS" \
+            --flash-attn on \
+            --reasoning-budget "$REASONING_BUDGET" \
+            --jinja \
+            --alias "raksha-qwen3.5-4b" \
+            >> "$LOG_FILE" 2>&1 &
+        echo $! > "$PID_FILE"
+        echo "Started PID $(cat "$PID_FILE") (log: $LOG_FILE)"
+        ;;
+    stop)
+        if [ -f "$PID_FILE" ]; then
+            kill "$(cat "$PID_FILE")" 2>/dev/null || true
+            rm -f "$PID_FILE"
+            echo "Stopped raksha-llama-server."
+        else
+            echo "raksha-llama-server is not running."
+        fi
+        ;;
+    status)
+        if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+            echo "ONLINE: PID $(cat "$PID_FILE") at http://$HOST:$PORT/v1 (model: $MODEL)"
+        else
+            echo "OFFLINE"
+        fi
+        ;;
+    *)
+        echo "Usage: raksha-llama-server {start|stop|status}"
+        exit 1
+        ;;
+esac

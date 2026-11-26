@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="lineage_api_level">Raksha OS API level</string>
+    <string name="lineage_updates">Raksha OS updates</string>
+    <string name="lineage_version">Raksha OS version</string>
+    <string name="lineageos_system_label">Raksha OS System</string>
+    <string name="permdesc_useHardwareFramework">Allows an app access to the Raksha OS hardware framework.</string>
+    <string name="permdesc_writeSecureSettings">Allows an app to modify Raksha OS secure system settings. Not for use by normal apps.</string>
+    <string name="permdesc_writeSettings">Allows an app to modify Raksha OS system settings.</string>
+    <string name="permlab_writeSecureSettings">modify Raksha OS secure system settings</string>
+    <string name="permlab_writeSettings">modify Raksha OS system settings</string>
+</resources>

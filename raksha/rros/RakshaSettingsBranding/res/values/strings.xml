@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_crdroid">About Raksha OS</string>
+    <string name="crdroid_channel_name">Raksha OS notifications</string>
+    <string name="crdroid_channel_desc">System notifications for Raksha OS</string>
+    <string name="crdroid_donate_title">Raksha OS</string>
+    <string name="crdroid_donate_message">Raksha OS — Sovereign Android 17 with Kali NetHunter and OpenClaw AI.</string>
+    <string name="crdroid_donate_preference_title">Raksha OS Info</string>
+    <string name="crdroid_donate_preference_summary">Sovereign Android 17 build</string>
+    <string name="crdroid_license_title">Raksha OS legal</string>
+    <string name="crdroid_settings_title">Raksha OS Settings</string>
+    <string name="crdroid_settings_summary">Customize Raksha OS experience</string>
+    <string name="crdroid_source_title">Raksha OS source</string>
+    <string name="crdroid_source_summary">View source code</string>
+    <string name="crdroid_telegram_title">Raksha OS</string>
+    <string name="crdroid_telegram_summary">Raksha OS build</string>
+    <string name="crdroid_update_title">Raksha OS status</string>
+    <string name="crdroid_update_summary">Open Raksha Control for system tools</string>
+    <string name="crdroid_website_title">Raksha OS</string>
+    <string name="crdroid_website_summary">Raksha OS Android 17</string>
+    <string name="lineagelicense_title">Open Source legal</string>
+    <string name="reset_settings_message">This will reset most Raksha OS settings to their default values for the current user. Would you like to continue?</string>
+    <string name="share_chooser_title">Share Raksha OS</string>
+    <string name="share_crdroid_summary">Share Raksha OS</string>
+    <string name="share_crdroid_title">Share Raksha OS</string>
+    <string name="share_message">Running Raksha OS on Android 17</string>
+    <string name="status_bar_logo_style_crdroid">Raksha OS</string>
+    <color name="homepage_crdroid_background">#ff0a1e26</color>
+</resources>

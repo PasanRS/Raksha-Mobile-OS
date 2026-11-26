@@ -1,0 +1,16 @@
+{
+  "name": "RakshaOS OpenClaw",
+  "bind": "127.0.0.1",
+  "port": 18789,
+  "llm_backend": {
+    "provider": "raksha-local",
+    "base_url": "http://127.0.0.1:8081/v1",
+    "model": "raksha-qwen3.5-4b",
+    "model_path": "/system/etc/openclaw/models/Qwen3.5-4B-Q4_K_M.gguf",
+    "context_size": 16384
+  },
+  "security": {
+    "loopback_only": true,
+    "remote_access": false
+  }
+}

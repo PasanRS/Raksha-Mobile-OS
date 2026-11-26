@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" width="960" height="330" role="img" aria-label="Raksha Mobile OS Live On-Device AI Terminal Demo">
+  <defs>
+    <linearGradient id="termBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#070D19"/>
+      <stop offset="100%" stop-color="#030712"/>
+    </linearGradient>
+  </defs>
+  <style>
+    @keyframes reveal1 { 0%, 5% { opacity: 0; } 10%, 100% { opacity: 1; } }
+    @keyframes reveal2 { 0%, 18% { opacity: 0; } 23%, 100% { opacity: 1; } }
+    @keyframes reveal3 { 0%, 34% { opacity: 0; } 39%, 100% { opacity: 1; } }
+    @keyframes reveal4 { 0%, 50% { opacity: 0; } 55%, 100% { opacity: 1; } }
+    @keyframes reveal5 { 0%, 66% { opacity: 0; } 71%, 100% { opacity: 1; } }
+    @keyframes reveal6 { 0%, 80% { opacity: 0; } 85%, 100% { opacity: 1; } }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .l1 { animation: reveal1 9s infinite; }
+    .l2 { animation: reveal2 9s infinite; }
+    .l3 { animation: reveal3 9s infinite; }
+    .l4 { animation: reveal4 9s infinite; }
+    .l5 { animation: reveal5 9s infinite; }
+    .l6 { animation: reveal6 9s infinite; }
+    .cur { animation: blink 1s step-end infinite; }
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 14.5px; }
+  </style>
+
+  <!-- Window Frame -->
+  <rect x="2" y="2" width="956" height="326" rx="14" fill="url(#termBg)" stroke="#00F5FF" stroke-opacity="0.45" stroke-width="1.5"/>
+  <rect x="2" y="2" width="956" height="38" rx="14" fill="#0D192E"/>
+  <rect x="2" y="24" width="956" height="16" fill="#0D192E"/>
+  <line x1="2" y1="40" x2="958" y2="40" stroke="#00F5FF" stroke-opacity="0.25" stroke-width="1"/>
+
+  <!-- Traffic lights -->
+  <circle cx="24" cy="21" r="6" fill="#FF5F56"/>
+  <circle cx="44" cy="21" r="6" fill="#FFBD2E"/>
+  <circle cx="64" cy="21" r="6" fill="#27C93F"/>
+  <text x="480" y="25" text-anchor="middle" fill="#7DD3FC" font-size="13" font-weight="700">raksha@s26-ultra — /system/bin/raksha-llama-server &amp; openclaw (127.0.0.1)</text>
+
+  <!-- Terminal Lines -->
+  <g class="l1">
+    <text x="24" y="72" fill="#00F5FF">$ su -c /system/bin/raksha-llama-server start</text>
+    <text x="24" y="94" fill="#94A3B8">Starting native llama-server (armv9.2-cpu) with Qwen3.5-4B-Q4_K_M.gguf ...</text>
+  </g>
+  <g class="l2">
+    <text x="24" y="118" fill="#22C55E">✓ ONLINE: http://127.0.0.1:8081/v1  |  alias=raksha-qwen3.5-4b  |  ctx=16384  |  loopback-only</text>
+  </g>
+  <g class="l3">
+    <text x="24" y="150" fill="#00F5FF">$ curl -s http://127.0.0.1:8081/v1/chat/completions -d '{"model":"raksha-qwen3.5-4b",...}'</text>
+    <text x="24" y="172" fill="#E2E8F0">→ "Hello there, friend!"  <tspan fill="#38BDF8">[54.3 tok/s prompt • 14.7 tok/s gen • 0.79s total • 0 bytes to cloud]</tspan></text>
+  </g>
+  <g class="l4">
+    <text x="24" y="206" fill="#00F5FF">$ openclaw gateway  &amp;&amp;  ss -tlnp | grep -E "8081|18789"</text>
+    <text x="24" y="228" fill="#22C55E">✓ LISTEN 127.0.0.1:18789 (openclaw-gateway)   |   LISTEN 127.0.0.1:8081 (llama-server)</text>
+  </g>
+  <g class="l5">
+    <text x="24" y="260" fill="#00F5FF">$ su -c /system/bin/raksha-kali-install --status</text>
+    <text x="24" y="282" fill="#F59E0B">✓ Kali NetHunter ARM64 Full RootFS baked offline (1.75 GB)  |  Dolphy v2.7 (NFC/BLE/IR) ready</text>
+  </g>
+  <g class="l6">
+    <text x="24" y="308" fill="#00F5FF">raksha@s26-ultra:~$ <tspan fill="#FFFFFF" class="cur">█</tspan></text>
+  </g>
+</svg>

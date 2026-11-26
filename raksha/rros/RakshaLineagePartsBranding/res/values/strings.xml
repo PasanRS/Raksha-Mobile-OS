@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lineageparts_title">Raksha Mobile OS Settings</string>
+    <string name="privacy_settings_category">Raksha Mobile OS</string>
+    <string name="egg_title">Raksha Mobile OS</string>
+    <string name="anonymous_statistics_title">Raksha diagnostics</string>
+    <string name="anonymous_statistics_summary">Anonymous diagnostics (disabled in Raksha Mobile OS)</string>
+    <string name="anonymous_statistics_warning">Telemetry and anonymous statistics reporting are disabled in Raksha Mobile OS.</string>
+    <string name="stats_collection_title">Local diagnostics</string>
+    <string name="stats_collection_summary">External telemetry is disabled in Raksha Mobile OS</string>
+    <string name="stats_crdroid_url">https://raksha.local/disabled</string>
+    <string name="trust_feature_security_patches_explain">Security patches are released monthly for Android and SoC components. Keep Raksha Mobile OS and your host One UI firmware up to date for the latest protections.</string>
+    <string name="trust_feature_selinux_value_disabled">Container Mode (OneOS)</string>
+    <string name="trust_feature_selinux_explain">OneOS runs Raksha Mobile OS in container permissive mode over your host One UI kernel so the guest can start cleanly. Your host One UI system remains SELinux Enforcing when you return.</string>
+</resources>

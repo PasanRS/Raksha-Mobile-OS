@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" role="img" aria-label="Raksha Mobile OS — Awakening Edition">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#030712"/>
+      <stop offset="50%" stop-color="#071324"/>
+      <stop offset="100%" stop-color="#050814"/>
+    </linearGradient>
+    <linearGradient id="cyanCrimson" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#FF3355"/>
+    </linearGradient>
+    <linearGradient id="scanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00F5FF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="48%" r="48%">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.24"/>
+      <stop offset="55%" stop-color="#0EA5E9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#030712" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00F5FF" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.72; }
+      50% { opacity: 1; }
+    }
+    @keyframes scanSweep {
+      0% { transform: translateY(-90px); }
+      100% { transform: translateY(380px); }
+    }
+    @keyframes floatA {
+      0%, 100% { transform: translateY(0px); opacity: 0.45; }
+      50% { transform: translateY(-14px); opacity: 0.95; }
+    }
+    @keyframes floatB {
+      0%, 100% { transform: translateY(0px); opacity: 0.35; }
+      50% { transform: translateY(12px); opacity: 0.85; }
+    }
+    @keyframes borderFlow {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -120; }
+    }
+    .pulse { animation: pulseGlow 3.2s ease-in-out infinite; }
+    .scan { animation: scanSweep 5.5s linear infinite; }
+    .pA { animation: floatA 4.2s ease-in-out infinite; }
+    .pB { animation: floatB 5.1s ease-in-out infinite; }
+    .flow { stroke-dasharray: 18 12; animation: borderFlow 3s linear infinite; }
+  </style>
+
+  <!-- Base canvas & grid -->
+  <rect width="1200" height="340" rx="18" fill="url(#bgGrad)"/>
+  <rect width="1200" height="340" rx="18" fill="url(#cyberGrid)"/>
+  <rect width="1200" height="340" rx="18" fill="url(#coreGlow)" class="pulse"/>
+
+  <!-- Animated scanline -->
+  <rect x="0" y="0" width="1200" height="72" fill="url(#scanGrad)" class="scan"/>
+
+  <!-- Corner HUD brackets -->
+  <g stroke="#00F5FF" stroke-width="2.5" fill="none" opacity="0.85">
+    <path d="M 24 58 L 24 24 L 68 24"/>
+    <path d="M 1132 24 L 1176 24 L 1176 58"/>
+    <path d="M 24 282 L 24 316 L 68 316"/>
+    <path d="M 1132 316 L 1176 316 L 1176 282"/>
+  </g>
+
+  <!-- Animated cyber accent rails -->
+  <line x1="90" y1="36" x2="1110" y2="36" stroke="url(#cyanCrimson)" stroke-width="1.5" opacity="0.55" class="flow"/>
+  <line x1="90" y1="304" x2="1110" y2="304" stroke="url(#cyanCrimson)" stroke-width="1.5" opacity="0.55" class="flow"/>
+
+  <!-- Floating neon particles -->
+  <g fill="#00F5FF" filter="url(#neonGlow)">
+    <circle cx="140" cy="115" r="2.8" class="pA"/>
+    <circle cx="210" cy="240" r="2.2" class="pB"/>
+    <circle cx="1055" cy="120" r="3.0" class="pB"/>
+    <circle cx="990" cy="238" r="2.4" class="pA"/>
+    <circle cx="295" cy="82" r="1.8" class="pB"/>
+    <circle cx="910" cy="88" r="2.0" class="pA"/>
+  </g>
+  <g fill="#FF3355" filter="url(#neonGlow)">
+    <circle cx="170" cy="185" r="2.2" class="pB"/>
+    <circle cx="1030" cy="185" r="2.2" class="pA"/>
+  </g>
+
+  <!-- Top HUD badge -->
+  <rect x="405" y="54" width="390" height="30" rx="15" fill="#00F5FF" fill-opacity="0.10" stroke="#00F5FF" stroke-opacity="0.55" stroke-width="1"/>
+  <text x="600" y="74" text-anchor="middle" fill="#00F5FF" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13" font-weight="700" letter-spacing="2.2">
+    ANDROID 17  •  ONEOS v0.5.36  •  LOCAL AI
+  </text>
+
+  <!-- Sinhala Brand Mark -->
+  <text x="600" y="148" text-anchor="middle" fill="#00F5FF" filter="url(#neonGlow)" font-family="'Noto Serif Sinhala', 'Noto Sans Sinhala', sans-serif" font-size="54" font-weight="800" class="pulse">
+    රාක්ෂ
+  </text>
+
+  <!-- Main Title -->
+  <text x="600" y="210" text-anchor="middle" fill="#FFFFFF" filter="url(#neonGlow)" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="56" font-weight="900" letter-spacing="4">
+    RAKSHA MOBILE OS
+  </text>
+
+  <!-- Subtitle -->
+  <text x="600" y="248" text-anchor="middle" fill="#B8F5FF" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="17" font-weight="600" letter-spacing="2">
+    AWAKENING EDITION  //  QWEN3.5-4B • OPENCLAW • KALI NETHUNTER • DOLPHY RF
+  </text>
+
+  <!-- Footer tagline -->
+  <text x="600" y="284" text-anchor="middle" fill="#7DD3FC" fill-opacity="0.82" font-family="system-ui, -apple-system, sans-serif" font-size="14" letter-spacing="1.2">
+    Runs Beside Stock One UI (Zero Partition Wipe)  •  Galaxy S26 Ultra &amp; S23 Ultra
+  </text>
+</svg>

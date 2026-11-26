@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crdroid_app_name">Raksha Home</string>
+    <string name="allset_title">Welcome to Raksha OS</string>
+    <string name="allset_title_expressive_fixed">Welcome to Raksha OS</string>
+    <string name="allset_description_generic">You’re ready to enter Raksha OS on your %1$s</string>
+    <string name="allset_description_fallback">You’re ready to enter Raksha OS</string>
+    <string-array name="quickspace_psa_random">
+        <item>Raksha OS — Awakening</item>
+        <item>Sovereign Android 17</item>
+        <item>Local AI ready on device</item>
+        <item>Kali NetHunter armed</item>
+        <item>Stay sharp. Stay sovereign.</item>
+        <item>Built with precision</item>
+        <item>Welcome to Raksha OS</item>
+        <item>Silence the noise</item>
+    </string-array>
+</resources>

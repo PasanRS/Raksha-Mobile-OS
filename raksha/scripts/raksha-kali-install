@@ -1,0 +1,36 @@
+#!/system/bin/sh
+# Raksha OS — Offline Full Kali NetHunter ARM64 Chroot Installer
+set -e
+TARBALL="/system/etc/raksha/kali/kali-nethunter-rootfs-full-arm64.tar.xz"
+NHSYS="/data/local/nhsystem"
+CHROOT="$NHSYS/kali-arm64"
+BB="/system/bin/busybox_nh"
+[ -x "$BB" ] || BB="busybox"
+
+if [ "$(id -u)" != "0" ]; then
+    echo "Please run as root (enable Guest root in the OneOS app, then run: su -c raksha-kali-install)"
+    exit 1
+fi
+if [ ! -f "$TARBALL" ]; then
+    echo "ERROR: Kali rootfs tarball missing at $TARBALL"
+    exit 1
+fi
+mkdir -p "$NHSYS" /sdcard/Download
+ln -sf "$TARBALL" /sdcard/Download/kali-nethunter-rootfs-full-arm64.tar.xz 2>/dev/null || true
+
+if [ -d "$CHROOT/usr/bin" ] && [ "${1:-}" != "--force" ]; then
+    echo "Kali ARM64 Full chroot is already installed at $CHROOT"
+    echo "Pass --force to reinstall."
+    exit 0
+fi
+
+echo "Extracting Full Kali NetHunter ARM64 rootfs into $NHSYS ..."
+rm -rf "$CHROOT"
+"$BB" xz -dc "$TARBALL" | "$BB" tar -xpf - -C "$NHSYS"
+if [ -d "$NHSYS/kali-arm64" ]; then
+    echo "SUCCESS: Kali ARM64 Full chroot ready at $CHROOT"
+    echo "Open the NetHunter app -> Kali Chroot Manager to start it (or run bootkali)."
+else
+    echo "Extracted contents in $NHSYS:"
+    ls -la "$NHSYS"
+fi

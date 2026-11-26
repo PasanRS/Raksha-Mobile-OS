@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.raksha.branding.settings" android:versionCode="2" android:versionName="1.1">
+    <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="37" />
+    <application android:hasCode="false" android:extractNativeLibs="false" />
+    <overlay android:targetPackage="com.android.settings" android:isStatic="true" android:priority="900" />
+</manifest>
