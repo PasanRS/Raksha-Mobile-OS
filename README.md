@@ -105,36 +105,28 @@ flowchart TB
 - At least **20 GB free internal storage** (for staging the compressed + raw system image).
 
 ### Step 1 — Download & Reassemble the Release Artifacts
-Grab all 6 verified files from the **[`v1.0-awakening` Release](https://github.com/PasanRS/Raksha-Mobile-OS/releases/tag/v1.0-awakening)**:
+Grab all verified assets from the **[`v1.0-awakening` Release](https://github.com/PasanRS/Raksha-Mobile-OS/releases/tag/v1.0-awakening)**:
+- **[`OneOS-0.5.49-RakshaMobileOS.apk`](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/OneOS-0.5.49-RakshaMobileOS.apk)** *(237 MB, offline self-contained installer built on OneOS `v0.5.49`)*
+- **`RakshaMobileOS17_Awakening.img.gz.part00` – `.part28`** *(29 × `250 MiB` chunks for reliable resumable downloads; reassembles to the exact 6.89 GiB AVB RSA2048 + sha256 hashtree verified image)*
+- **[`SHA256SUMS.txt`](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/SHA256SUMS.txt)** *(checksum manifest for every file)*
 
-| File | Size | Direct Download |
-|---|---|---|
-| **`OneOS-0.5.49-RakshaMobileOS.apk`** | 237 MB | [Download APK](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/OneOS-0.5.49-RakshaMobileOS.apk) |
-| **`RakshaMobileOS17_Awakening.img.gz.part00`** | 1.9 GiB | [Download Part 00](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part00) |
-| **`RakshaMobileOS17_Awakening.img.gz.part01`** | 1.9 GiB | [Download Part 01](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part01) |
-| **`RakshaMobileOS17_Awakening.img.gz.part02`** | 1.9 GiB | [Download Part 02](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part02) |
-| **`RakshaMobileOS17_Awakening.img.gz.part03`** | 1.5 GiB | [Download Part 03](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part03) |
-| **`SHA256SUMS.txt`** | 626 B | [Download Checksums](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/SHA256SUMS.txt) |
-
-> *Why 4 parts?* GitHub Releases caps single assets at 2 GiB, so the AVB RSA2048 + sha256 hashtree verified `6.89 GiB` image is split into four `< 1.9 GiB` parts (`part00`–`part03`).
-
-Reassemble **`RakshaMobileOS17_Awakening.img.gz`** and verify SHA-256:
+**One-command download, reassemble & verify (Linux / macOS / Termux on-phone):**
 ```bash
-# Linux / macOS / Termux (on-phone):
-cat RakshaMobileOS17_Awakening.img.gz.part00 \
-    RakshaMobileOS17_Awakening.img.gz.part01 \
-    RakshaMobileOS17_Awakening.img.gz.part02 \
-    RakshaMobileOS17_Awakening.img.gz.part03 \
-    > RakshaMobileOS17_Awakening.img.gz
+BASE="https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening"
+curl -fL -C - -O "$BASE/OneOS-0.5.49-RakshaMobileOS.apk" -O "$BASE/SHA256SUMS.txt"
+for i in $(seq -w 0 28); do
+  curl -fL -C - -O "$BASE/RakshaMobileOS17_Awakening.img.gz.part$i"
+done
 
+cat RakshaMobileOS17_Awakening.img.gz.part* > RakshaMobileOS17_Awakening.img.gz
 sha256sum -c SHA256SUMS.txt
 # Expected SHA-256:
 # RakshaMobileOS17_Awakening.img.gz : 5f4815fc7977acaaee4707b9faf07f09ab612b7c078d7678e050d08b1caac978
 # OneOS-0.5.49-RakshaMobileOS.apk   : 1c1cd47a2232096d24eed24b5b9208725fe147208fb8e05fc01b8cdd5eaccec4
 ```
 ```cmd
-:: Windows Command Prompt:
-copy /b RakshaMobileOS17_Awakening.img.gz.part00 + RakshaMobileOS17_Awakening.img.gz.part01 + RakshaMobileOS17_Awakening.img.gz.part02 + RakshaMobileOS17_Awakening.img.gz.part03 RakshaMobileOS17_Awakening.img.gz
+:: Windows Command Prompt (after downloading all .part00-.part28 into one folder):
+copy /b RakshaMobileOS17_Awakening.img.gz.part* RakshaMobileOS17_Awakening.img.gz
 certutil -hashfile RakshaMobileOS17_Awakening.img.gz SHA256
 ```
 
