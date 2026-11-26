@@ -105,10 +105,18 @@ flowchart TB
 - At least **20 GB free internal storage** (for staging the compressed + raw system image).
 
 ### Step 1 — Download & Reassemble the Release Artifacts
-Grab all files from the **[v1.0-awakening Release](https://github.com/PasanRS/Raksha-Mobile-OS/releases/tag/v1.0-awakening)**:
-1. **`OneOS-0.5.49-RakshaMobileOS.apk`** *(237 MB, offline self-contained installer built on OneOS `v0.5.49`)*
-2. **`RakshaMobileOS17_Awakening.img.gz.part00` – `.part03`** *(split into four `< 1.9 GiB` parts to fit GitHub's 2 GiB release asset limit; reassembles to the exact 6.89 GiB AVB RSA2048 + sha256 hashtree verified image)*
-3. **`SHA256SUMS.txt`** *(checksum manifest for every file)*
+Grab all 6 verified files from the **[`v1.0-awakening` Release](https://github.com/PasanRS/Raksha-Mobile-OS/releases/tag/v1.0-awakening)**:
+
+| File | Size | Direct Download |
+|---|---|---|
+| **`OneOS-0.5.49-RakshaMobileOS.apk`** | 237 MB | [Download APK](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/OneOS-0.5.49-RakshaMobileOS.apk) |
+| **`RakshaMobileOS17_Awakening.img.gz.part00`** | 1.9 GiB | [Download Part 00](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part00) |
+| **`RakshaMobileOS17_Awakening.img.gz.part01`** | 1.9 GiB | [Download Part 01](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part01) |
+| **`RakshaMobileOS17_Awakening.img.gz.part02`** | 1.9 GiB | [Download Part 02](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part02) |
+| **`RakshaMobileOS17_Awakening.img.gz.part03`** | 1.5 GiB | [Download Part 03](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/RakshaMobileOS17_Awakening.img.gz.part03) |
+| **`SHA256SUMS.txt`** | 626 B | [Download Checksums](https://github.com/PasanRS/Raksha-Mobile-OS/releases/download/v1.0-awakening/SHA256SUMS.txt) |
+
+> *Why 4 parts?* GitHub Releases caps single assets at 2 GiB, so the AVB RSA2048 + sha256 hashtree verified `6.89 GiB` image is split into four `< 1.9 GiB` parts (`part00`–`part03`).
 
 Reassemble **`RakshaMobileOS17_Awakening.img.gz`** and verify SHA-256:
 ```bash
