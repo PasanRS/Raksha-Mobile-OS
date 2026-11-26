@@ -1,0 +1,892 @@
+diff --git a/CREDITS.md b/CREDITS.md
+index 601582e..13721da 100644
+--- a/CREDITS.md
++++ b/CREDITS.md
+@@ -135,3 +135,13 @@ repository; `switcher/patches/host_installd.txt` and the probe fixtures under
+ `app-android/core/model/src/test/resources/` list interface facts (method
+ names, transaction codes, build properties) read from phones for
+ interoperability.
++
++## Raksha Mobile OS integration
++
++Raksha Mobile OS (`raksha17-awakening`, `PackageSets.RAKSHA`) is maintained on
++top of upstream [OneOS](https://github.com/fahadalijaved/OneOS) by **PasanRS**
++(Raksha Mobile OS Project), adding support for the Raksha Mobile OS Android 17
++system image, in-guest `libhwui` fading-edge guards for AOSP/Lineage/Raksha
++guests, single-wizard setup-phase HOME gating, and bundled open-source tools
++including Kali NetHunter, `llama.cpp`, OpenClaw, and
++[Dolphy](https://github.com/unvoiddd/Dolphy-App) (GPL-3.0).
+diff --git a/app-android/app/build.gradle.kts b/app-android/app/build.gradle.kts
+index 441a80e..9dccbd1 100644
+--- a/app-android/app/build.gradle.kts
++++ b/app-android/app/build.gradle.kts
+@@ -97,6 +97,7 @@ val packageSets: Map<String, Pair<File, List<String>>> = linkedMapOf(
+     "oneui95-a16" to (File(repoRoot, "out/overlays_oneui95_a16_r9") to listOf("tethering_payload.img")),
+     // PixelOS 17 (0.5.35): the POCO F7 build for the ARMv8.2 Galaxy A series.
+     "pixelos" to (File(repoRoot, "out/overlays_pixelos_onyx_r6") to listOf("tethering_payload.img", "cellbroadcast_payload.img")),
++    "raksha" to (File(repoRoot, "out/overlays_raksha") to listOf("tethering_payload.img", "cellbroadcast_payload.img")),
+ )
+ // The series downloads (0.4.25): -Poneos.series=<id> packs only the sets that
+ // app-android/packages/series.txt lists for it (ApkSeries keeps the same lists,
+@@ -123,7 +124,15 @@ val setRemoteIds: Map<String, String> = File(packagesDir, "remote.txt").takeIf {
+             ?: throw GradleException("packages/remote.txt: not a '<sha256> <source>[,<source>...]' line: $l")
+         m.groupValues[1] to m.groupValues[2]
+     } ?: emptyMap()
+-val packedSets: Set<String> = if (seriesId == null) {
++val trialSet: String? = (findProperty("oneos.trialSet") as String?)?.trim()?.takeIf { it.isNotEmpty() }
++if (trialSet != null) {
++    require(seriesId == null) { "oneos.trialSet cannot be combined with oneos.series" }
++    require(packSetsInApk) { "oneos.trialSet requires -Poneos.packSets=true" }
++    require(trialSet in packageSets) { "oneos.trialSet: unknown set $trialSet" }
++}
++val packedSets: Set<String> = if (trialSet != null) {
++    setOf(trialSet)
++} else if (seriesId == null) {
+     packageSets.keys
+ } else {
+     val sets = seriesSets[seriesId] ?: throw GradleException("oneos.series: '$seriesId' is not in packages/series.txt (${seriesSets.keys})")
+@@ -600,7 +609,7 @@ android {
+             buildConfigField("boolean", "A17_ON_A16", "$a17OnA16")
+             val suffix = (seriesId?.let { "-$it" } ?: "") + (if (a17OnA16 && a17OnA16Suffix != null) "-$a17OnA16Suffix" else "")
+             if (suffix.isNotEmpty()) versionNameSuffix = suffix
+-            for ((id, _) in packageSets) {
++            for (id in packedSets) {
+                 val f = File(packagesDir, "$id.sha256")
+                 val list = if (f.isFile) renderShaList(readShaList(f)) else ""
+                 buildConfigField("String", "SET_${id.uppercase().replace('-', '_')}_SHA256", "\"${sha256(list.toByteArray())}\"")
+diff --git a/app-android/app/src/full/assets/root/oneos_root.sh b/app-android/app/src/full/assets/root/oneos_root.sh
+index daa0504..4b9f122 100644
+--- a/app-android/app/src/full/assets/root/oneos_root.sh
++++ b/app-android/app/src/full/assets/root/oneos_root.sh
+@@ -183,6 +183,8 @@ SET_HYPERHK="OneOSCameraProcessingStub.apk OneOSFoldCutout.apk OneOSGuest.apk On
+ # patch (its build is unknown to the patcher) and no signal poll injection.
+ SET_NOTHING="NothingGenerateRingtoneService_patched.apk NothingLauncher3_patched.apk OneOSBrightnessRange.apk OneOSFoldCutout.apk OneOSGuest.apk OneOSNtAbout.apk OneOSNtAboutFlip.apk OneOSNtAboutFold8.apk OneOSNtAboutPhone.apk OneOSNtAboutS26U.apk OneOSNtEssentialKey.apk OneOSPhoneInjection.apk OneOSTabletQs.apk SystemUI_patched.apk adservices_payload.img appsearch_payload.img art_payload.img bt_payload.img cellbroadcast_payload.img configinfrastructure_payload.img crashrecovery_payload.img extservices_payload.img framework_patched.jar guards.txt healthfitness_payload.img i18n_payload.img ims-ext-common_patched.jar libbootanimation_preapex_patched.so libcamera_client_patched.so mediaprovider_payload.img nfcservices_payload.img nothing_customringtone.tar nothing_product_media.tar nt-telephony-common_patched.jar ondevicepersonalization_payload.img oneos-telephony.jar oneos-telephony.sha256 permission_payload.img rkpd_payload.img runtime_payload.img samcam.tar samcam_bar.tar sdkext_payload.img service.incremental_patched.so services_patched.jar surfaceflinger_patched vold_patched wifi_payload.img"
+ SET_NOTHINGA="NothingLauncher3_patched.apk OneOSBrightnessRange.apk OneOSBrightnessRange34.apk OneOSFoldCutout.apk OneOSGuest.apk OneOSNtAbout.apk OneOSNtAboutFlip.apk OneOSNtAboutFold8.apk OneOSNtAboutPhone.apk OneOSNtAboutS26U.apk OneOSNtEssentialKey.apk OneOSPhoneInjection.apk OneOSTabletQs.apk SystemUI_patched.apk adservices_payload.img appsearch_payload.img art_payload.img bt_payload.img cellbroadcast_payload.img configinfrastructure_payload.img crashrecovery_payload.img extservices_payload.img framework_patched.jar gmssystem_payload.img guards.txt healthfitness_payload.img i18n_payload.img ims-ext-common_patched.jar libbootanimation_preapex_patched.so libcamera_client_patched.so mediaprovider_payload.img nfcservices_payload.img nothing_product_media.tar nt-telephony-common_patched.jar ondevicepersonalization_payload.img oneos-apex-requires.txt oneos-telephony.jar oneos-telephony.sha256 permission_payload.img rkpd_payload.img runtime_payload.img samcam_a.tar sdkext_payload.img service.incremental_patched.so services_patched.jar surfaceflinger_patched telephony-common_patched.jar vold_patched wifi_payload.img"
++# Raksha OS Android 17 full overlay set (with AxSpoofManagerService deadlock fix)
++SET_RAKSHA="services_patched.jar framework_patched.jar vold_patched service.incremental_patched.so libcamera_client_patched.so telephony-common_patched.jar guards.txt oneos-telephony.jar oneos-telephony.sha256 OneOSPhoneInjection.apk OneOSGuest.apk OneOSPixelStatusBar.apk OneOSFoldCutout.apk OneOSTabletQs.apk oneos-apex-requires.txt art_payload.img i18n_payload.img runtime_payload.img sdkext_payload.img crashrecovery_payload.img extservices_payload.img permission_payload.img wifi_payload.img appsearch_payload.img mediaprovider_payload.img adservices_payload.img rkpd_payload.img healthfitness_payload.img ondevicepersonalization_payload.img configinfrastructure_payload.img bt_payload.img nfcservices_payload.img telephonycore_payload.img conscrypt_payload.img profiling_payload.img"
+ # One UI 9.5 (0.5.22): the Galaxy S26 Ultra build's guarded jars and camera libraries, signal poll, payloads and software floating features (set r1); no vold, no tethering.
+ SET_ONEUI="OneOSFoldCutout.apk OneOSGuest.apk OneOSPhoneInjection.apk OneOSPixelStatusBar.apk adservices_payload.img appsearch_payload.img art_payload.img bt_payload.img cellbroadcast_payload.img configinfrastructure_payload.img crashrecovery_payload.img extservices_payload.img framework_patched.jar gmssystem_payload.img guards.txt healthfitness_payload.img i18n_payload.img libcamera_client_patched.so libcameracompatbilityinfo_patched.so mediaprovider_payload.img nfcservices_payload.img npumanager_payload.img ondevicepersonalization_payload.img oneos-apex-requires.txt oneos-telephony.jar oneos-telephony.sha256 oneui_floating_add.txt permission_payload.img rkpd_payload.img runtime_payload.img sdkext_payload.img services_patched.jar vold_patched service.incremental_patched.so telephony-common_patched.jar telephonycore_payload.img webapp_payload.img wifi_payload.img samcam_a_oneui.tar"
+ # One UI 9.5 on the Z Fold8 (0.5.35, pull request #328): the same plus Josh's Fold8 files.
+@@ -202,7 +204,7 @@ ENV_KEYS="ONEOS_APP ONEOS_PROFILE ONEOS_SPLASH_COMPONENT ONEOS_WALLPAPER_PROBE O
+ # ImageRef.gmsHideable): the Find X9 Ultra IN build (again from 0.4.11) and
+ # the Find N6 global build (0.4.38). The Pixel images have them too, but their
+ # sessions present their own GmsCore, and oneos_switch.sh refuses to hide that.
+-IMAGES_GMS="coloros17-findn6 coloros17-findx9u-in-1105 nothingos5-metroid oxygenos16-cph2745 oxygenos17-opd2514 lineage24-infiniti"
++IMAGES_GMS="coloros17-findn6 coloros17-findx9u-in-1105 nothingos5-metroid oxygenos16-cph2745 oxygenos17-opd2514 lineage24-infiniti raksha17-awakening"
+ 
+ # <id>: <model prefix> <codename> <SoC> <form>. Enabled profiles only (the
+ # S25 Ultra from 0.3.1, the Galaxy S25 from 0.3.4, the Z Fold7 from 0.4.8,
+@@ -301,6 +303,9 @@ profile_info() {
+ profile_set() {
+     a17_on_a16_set "$1" "$2" && return 0
+     case "$1 $2" in
++        "s-ultra-8850 raksha17-awakening") echo raksha ;;
++        "s-ultra-8550 raksha17-awakening") echo raksha ;;
++        "s-ultra-8550-jp raksha17-awakening") echo raksha ;;
+         "f8u coloros17-findn6") echo n6-f8u ;;
+         "f8u pixel11fold-yogi") echo pixel-f8u ;;
+         "f8u hyperos-lhasa") echo hyper-f8u ;;
+@@ -831,6 +836,7 @@ image_raw() {
+         return 0
+     fi
+     case "$1" in
++        raksha17-awakening) echo "11928596480 f9b3af805a65e605e30d05d99c8518d22bd1296740140efbcc9b787eb9df3a7f" ;;
+         coloros17-findn6) echo "14829686784 eec6c10581657b17f3164d6f964c749b351c4a7ec07233840da5f6a0ce28a47c" ;;
+         coloros17-findx9u-in) echo "14669168640 92c7cd8485dd6ef80d1f5c734ea13a8744510c15b77a18471eb11078df84ddb6" ;;
+         coloros17-findx9u-in-1105) echo "14782214144 6c089f2d043d60f34b40dd58ad44f88621163163c1664121753311a115da8d7c" ;;
+@@ -871,6 +877,7 @@ set_files() {
+         infinityx) echo "$SET_INFINITYX framework_patched_oneui95.jar libcamera_client_patched_oneui95.so" ;;
+         lineage) echo "$SET_LINEAGE framework_patched_oneui95.jar libcamera_client_patched_oneui95.so" ;;
+         pixelos) echo "$SET_PIXELOS framework_patched_oneui95.jar libcamera_client_patched_oneui95.so" ;;
++        raksha) echo "$SET_RAKSHA" ;;
+         oxygen16) echo "$SET_OXYGENOS" ;;
+         oxygen17pad) echo "$SET_OXYGENPAD" ;;
+         originos) echo "$SET_ORIGINOS framework_patched_oneui95.jar libcamera_client_patched_oneui95.so" ;;
+@@ -881,6 +888,7 @@ set_files() {
+ # <set>: the image it was built from (scripts/make-overlays.sh, PackageSet.imageId).
+ set_image() {
+     case "$1" in
++        raksha) echo raksha17-awakening ;;
+         n6-global-f8) echo coloros17-findn6 ;;
+         n6-f8u) echo coloros17-findn6 ;;
+         x9u-in-1105-sultra) echo coloros17-findx9u-in-1105 ;;
+@@ -912,6 +920,7 @@ set_image() {
+ # (com.miui.) (data_family).
+ image_family() {
+     case "$1" in
++        raksha17-awakening) echo raksha ;;
+         coloros17-findn6|coloros17-findx9u|coloros17-findx9u-in|coloros17-findx9u-in-1105) echo coloros ;;
+         pixel11fold-yogi|pixel11pro-kodiak|pixel9proxl-komodo) echo pixel ;;
+         pixelos17-onyx) echo pixelos ;;
+@@ -931,8 +940,11 @@ image_family() {
+ # words in the same order as status.list); nothing when no package tells.
+ data_family() {
+     pk="$STAGE/data/system/packages.xml"
++    # Raksha OS Android 17 (Lineage-derived): trust only a stage OneOS marked for this exact image.
++    if [ "${M_IMAGE:-}" = raksha17-awakening ] && [ "${ours:-0}" = 1 ] && grep -q -s -F "org.lineageos." "$pk"; then
++        echo raksha
+     # PixelOS (0.5.35): its updater; its data also has Pixel's launcher and LineageOS packages, so it goes first.
+-    if grep -q -s -F "net.pixelos.ota" "$pk"; then
++    elif grep -q -s -F "net.pixelos.ota" "$pk"; then
+         echo pixelos
+     elif grep -q -s -F "com.infinity.updater" "$pk"; then
+         echo infinityx
+@@ -1262,11 +1274,10 @@ check_files() { # <names>
+         [ -d "$f" ] && [ ! -L "$f" ] && continue
+         n=${f##*/}
+         case "$n" in
+-            # guest_prepare.sh writes and starts these each switch; they can outlive an in-place
+-            # return. 0.5.14: bring_watch.sh too (the Bring apps watcher).
+-            oneos_wdog_feeder.sh|bring_watch.sh) ;;
+-            # oneos_switch.sh writes it for the guest panel's own shape at every switch
+-            guest_panel_fit.sh) ;;
++            # guest_prepare.sh and oneos_switch.sh generate these session helpers.
++            # They can outlive an in-place return.
++            oneos_wdog_feeder.sh|bring_watch.sh|guest_panel_fit.sh|logcat_capture.sh)
++                [ -f "$f" ] && mine "$f" || refuse "$n is not a root-owned runtime file" ;;
+             *_patched*|*_payload.img|*.apk|*.jar|*.so|*.sh|*.tar|Fold8AngleRelay.dex|zygote_exec|oneos_btaudio|oneos_essential_key|socket_exec|clean_apex_info_list.xml|oneui_floating_add.txt|oneos-*)
+                 in_list "$n" "$1" || refuse "$n is in the stage but was not prepared (left from an older stage)" ;;
+         esac
+@@ -1331,6 +1342,8 @@ do_begin() {
+                 # moves on as an over-the-air update would (Images.DATA_UPGRADES), never back.
+                 [ -z "$made" ] || [ "$made" = "$B_IMAGE" ] || data_upgrade "$made" "$B_IMAGE" ||
+                     refuse "the stage's guest data is from $made, not $B_IMAGE: move the stage aside"
++                [ "$B_IMAGE" != raksha17-awakening ] || [ "$made" = "$B_IMAGE" ] ||
++                    refuse "Raksha guest data needs its own verified OneOS stage: move the stage aside"
+                 # And never another system's data (0.3.7): a stage another tool
+                 # made (no marker, no plan), or one whose marker names an image
+                 # its data is not from (scripts/deploy-phone.sh without --fresh).
+diff --git a/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/OsArtworkView.kt b/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/OsArtworkView.kt
+index a6a9023..d741ce7 100644
+--- a/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/OsArtworkView.kt
++++ b/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/OsArtworkView.kt
+@@ -37,6 +37,7 @@ class OsArtworkView @JvmOverloads constructor(context: Context, attrs: Attribute
+         SystemFamily.ORIGINOS -> R.drawable.os_originos
+         SystemFamily.LINEAGE -> R.drawable.os_lineage
+         SystemFamily.ONEUI -> R.drawable.os_oneui
++        SystemFamily.RAKSHA -> R.drawable.os_raksha
+         else -> R.drawable.os_coloros
+     })
+     fun bindArtwork(resource: Int) {
+@@ -53,6 +54,7 @@ class OsArtworkView @JvmOverloads constructor(context: Context, attrs: Attribute
+             R.drawable.os_originos -> SystemFamily.ORIGINOS
+             R.drawable.os_lineage -> SystemFamily.LINEAGE
+             R.drawable.os_oneui -> SystemFamily.ONEUI
++            R.drawable.os_raksha -> SystemFamily.RAKSHA
+             else -> SystemFamily.COLOROS
+         }
+         frame()
+@@ -78,6 +80,7 @@ class OsArtworkView @JvmOverloads constructor(context: Context, attrs: Attribute
+             SystemFamily.ORIGINOS -> R.drawable.os_originos_header
+             SystemFamily.LINEAGE -> R.drawable.os_lineage_header
+             SystemFamily.ONEUI -> R.drawable.os_oneui_header
++            SystemFamily.RAKSHA -> R.drawable.os_raksha
+             else -> R.drawable.os_coloros_header
+         }
+         if (rendered != resource) { rendered = resource; setImageResource(resource) }
+diff --git a/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/SystemsActivity.kt b/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/SystemsActivity.kt
+index f8288eb..7275a65 100644
+--- a/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/SystemsActivity.kt
++++ b/app-android/app/src/full/kotlin/com/fahadali/oneos/ui/SystemsActivity.kt
+@@ -148,9 +148,13 @@ internal object SystemsNav {
+      * the gofile folder; the last pick is offered first next time.
+      */
+     fun download(a: Activity, image: ImageRef) {
++        if (image.id == Images.ID_RAKSHA) {
++            open(a, "https://github.com/PasanRS/Raksha-Mobile-OS/releases")
++            return
++        }
+         val prefs = a.getSharedPreferences("download_mirror", Context.MODE_PRIVATE)
+         val mirrors = listOfNotNull(
+-            Triple("sourceforge", a.getString(R.string.systems_mirror_sourceforge), image.mirrorUrl),
++            image.mirrorUrl?.let { Triple("sourceforge", a.getString(R.string.systems_mirror_sourceforge), it) },
+             image.downloadUrl?.let { Triple("drive", a.getString(R.string.systems_mirror_drive), it) },
+             Triple("gofile", a.getString(R.string.systems_mirror_gofile), Images.GOFILE_FOLDER_URL),
+         )
+@@ -479,8 +483,10 @@ class SystemsFragment : Fragment() {
+         val lineage = image(com.fahadali.oneos.core.model.SystemFamily.LINEAGE, Images.LINEAGE24)
+         val oneui = image(com.fahadali.oneos.core.model.SystemFamily.ONEUI, Images.ONEUI95)
+         val pixelOs = image(com.fahadali.oneos.core.model.SystemFamily.PIXELOS, Images.PIXELOS_ONYX)
++        val raksha = image(com.fahadali.oneos.core.model.SystemFamily.RAKSHA, Images.RAKSHA17)
+         // OxygenOS 16 (Android 16, 0.4.67) only where the phone can take it (One UI 8), and first there.
+         val entries = listOfNotNull(
++            CatalogEntry(raksha.name, raksha, R.drawable.os_raksha, true).takeIf { available.any { it.id == raksha.id } },
+             // HyperOS 4 Global (0.5.27, tested on the Galaxy A36) first, with its own artwork, on the phones that offer it.
+             CatalogEntry(hyperGlobal.shortName, hyperGlobal, R.drawable.os_hyperos_global, true).takeIf { available.any { it.id == hyperGlobal.id } },
+             // 0.5.42: on the tablets this is ColorOS 17 (the Pad 4 build), with ColorOS's artwork.
+diff --git a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/ImageGuide.kt b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/ImageGuide.kt
+index f89de92..fffedb6 100644
+--- a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/ImageGuide.kt
++++ b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/ImageGuide.kt
+@@ -23,7 +23,7 @@ object ImageGuide {
+             out.append("- File: `").append(image.gzName).append("` (")
+                 .append(String.format(Locale.ROOT, "%.2f GB", image.gzBytes / 1e9)).append(")\n")
+             out.append("- SHA-256: `").append(image.gzSha256).append("`\n")
+-            out.append("- Download: ").append(image.mirrorUrl).append("\n")
++            out.append("- Download: ").append(image.mirrorUrl ?: "local build; not hosted").append("\n")
+             if (phones.isEmpty()) {
+                 out.append("- Phones: none in this build\n")
+                 continue
+diff --git a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Images.kt b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Images.kt
+index 54f465b..cf4f230 100644
+--- a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Images.kt
++++ b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Images.kt
+@@ -10,7 +10,7 @@ import java.util.Locale
+  * packages too, and its updater, com.infinity.updater, tells it apart.
+  */
+ /** PIXELOS (0.5.35): the PixelOS custom ROM, its own system (card, artwork, guest data), never Google's Pixel builds. */
+-enum class SystemFamily { COLOROS, PIXEL, INFINITYX, HYPEROS, NOTHING, OXYGENOS, ORIGINOS, LINEAGE, ONEUI, PIXELOS }
++enum class SystemFamily { COLOROS, PIXEL, INFINITYX, HYPEROS, NOTHING, OXYGENOS, ORIGINOS, LINEAGE, ONEUI, PIXELOS, RAKSHA }
+ 
+ /**
+  * One OneOS OS image as friends download it (a gzip of the ext4 system
+@@ -74,7 +74,7 @@ data class ImageRef(
+      * images/): one file, resumable, from a mirror near the user. [downloadUrl] (the Drive
+      * folder) stays the fallback.
+      */
+-    val mirrorUrl: String get() = "${Images.MIRROR_FILES_URL}$gzName/download"
++    val mirrorUrl: String? get() = if (downloadUrl == null) null else "${Images.MIRROR_FILES_URL}$gzName/download"
+ 
+     /**
+      * A launch may hide Google services (`ONEOS_GUEST_HIDE_GMS=1`, [SessionEnv],
+@@ -141,6 +141,7 @@ object Images {
+     /** Starts with "oneui": switcher/assets/boot_status.sh names the boot splash from it. */
+     const val ID_ONEUI95 = "oneui95-s948b"
+     const val ID_PIXELOS_ONYX = "pixelos17-onyx"
++    const val ID_RAKSHA = "raksha17-awakening"
+ 
+     /** Where root stages the unpacked image. */
+     const val STAGE_NAME = "system.raw"
+@@ -707,7 +708,35 @@ object Images {
+         family = SystemFamily.PIXELOS,
+     )
+ 
+-    val ALL: List<ImageRef> = listOf(FIND_N6, FIND_X9U_IN_1105, PIXEL_YOGI, PIXEL_KODIAK, PIXEL_KOMODO, INFINITYX, HYPEROS_LHASA, HYPEROS_HONGKONG, NOTHING_METROID, NOTHING_ASTEROIDS, OXYGEN16, OXYGEN17_PAD, ORIGINOS7, LINEAGE24, ONEUI95, PIXELOS_ONYX)
++    /**
++     * Raksha Mobile OS (Android 17, Awakening): Pixel aesthetic with Sinhala Raksha branding,
++     * MindTheGapps 17, Full Kali NetHunter ARM64 rootfs, Dolphy v2.7 (NFC/BLE/IR), and native
++     * OpenClaw + Qwen3.5-4B. Maintained by PasanRS (Raksha Mobile OS Project) on OneOS.
++     */
++    val RAKSHA17 = ImageRef(
++        id = ID_RAKSHA,
++        label = "Raksha Mobile OS Android 17, Awakening (Full)",
++        shortName = "Raksha Mobile",
++        name = "Raksha Mobile",
++        variant = "Awakening",
++        blurb = "Raksha Mobile OS (Android 17): Pixel aesthetic with Sinhala Raksha branding, MindTheGapps 17, Full Kali NetHunter, Dolphy (NFC/BLE/IR), and native OpenClaw + Qwen3.5-4B.",
++        downloadUrl = null,
++        sdk = 37,
++        buildId = "S918BXXUAGZIF",
++        gzName = "RakshaMobileOS17_Awakening.img.gz",
++        gzBytes = 7_400_698_948L,
++        gzSha256 = "5f4815fc7977acaaee4707b9faf07f09ab612b7c078d7678e050d08b1caac978",
++        rawBytes = 11_928_596_480L,
++        rawSha256 = "f9b3af805a65e605e30d05d99c8518d22bd1296740140efbcc9b787eb9df3a7f",
++        testedOn = null,
++        cpuRequired = emptyList(),
++        cpuUsedByApps = emptyList(),
++        googleServices = true,
++        presentsGms = false,
++        family = SystemFamily.RAKSHA,
++    )
++
++    val ALL: List<ImageRef> = listOf(FIND_N6, FIND_X9U_IN_1105, PIXEL_YOGI, PIXEL_KODIAK, PIXEL_KOMODO, INFINITYX, HYPEROS_LHASA, HYPEROS_HONGKONG, NOTHING_METROID, NOTHING_ASTEROIDS, OXYGEN16, OXYGEN17_PAD, ORIGINOS7, LINEAGE24, ONEUI95, PIXELOS_ONYX, RAKSHA17)
+ 
+     fun byId(id: String, images: List<ImageRef> = ALL): ImageRef? = images.firstOrNull { it.id == id }
+ 
+diff --git a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/PackageSets.kt b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/PackageSets.kt
+index 9d18fff..19a3c8c 100644
+--- a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/PackageSets.kt
++++ b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/PackageSets.kt
+@@ -181,6 +181,7 @@ object PackageSets {
+     const val ID_ONEUI95_A16 = "oneui95-a16"
+     const val ID_OXYGEN17_PAD = "oxygen17pad"
+     const val ID_PIXELOS = "pixelos"
++    const val ID_RAKSHA = "raksha"
+ 
+     /** Never mounted (guest_prepare.sh only keeps the host module); left out of every set. */
+     const val TETHERING = "tethering_payload.img"
+@@ -1109,7 +1110,35 @@ object PackageSets {
+         hasReturnApp = true,
+     )
+ 
+-    val ALL: List<PackageSet> = listOf(N6_GLOBAL_F8, N6_F8U, X9U_IN_1105_SULTRA, PIXEL_F8U, PIXEL_SULTRA, PIXEL_F8, PIXEL9_SULTRA, INFINITYX, HYPER_F8U, HYPER_HK, NOTHING_F8U, NOTHING_A, OXYGEN16, OXYGEN17_PAD, ORIGINOS, LINEAGE, ONEUI95, ONEUI95_F8, ONEUI95_A16, PIXELOS)
++    /** Local Raksha OS 17 full overlay set (with AxSpoofManagerService deadlock fix). */
++    val RAKSHA = PackageSet(
++        id = ID_RAKSHA,
++        imageId = Images.ID_RAKSHA,
++        sourceDir = "out/overlays_raksha",
++        files = listOf(
++            PackageFile("services_patched.jar", FileRole.GUARD_JAR),
++            PackageFile("framework_patched.jar", FileRole.GUARD_JAR),
++            PackageFile("vold_patched", FileRole.GUARD_EXECUTABLE),
++            PackageFile("service.incremental_patched.so", FileRole.GUARD_LIBRARY),
++            PackageFile("libcamera_client_patched.so", FileRole.GUARD_LIBRARY),
++            PackageFile("telephony-common_patched.jar", FileRole.GUARD_JAR),
++            PackageFile("guards.txt", FileRole.GUARDS),
++            PackageFile("oneos-telephony.jar", FileRole.INJECTION_JAR),
++            PackageFile("oneos-telephony.sha256", FileRole.INJECTION_SHA256),
++            PackageFile("OneOSPhoneInjection.apk", FileRole.RRO),
++            PackageFile(GUEST_APP, FileRole.GUEST_APP),
++            PackageFile("OneOSPixelStatusBar.apk", FileRole.RRO),
++            PackageFile("OneOSFoldCutout.apk", FileRole.RRO),
++            PackageFile("OneOSTabletQs.apk", FileRole.RRO),
++            PackageFile("oneos-apex-requires.txt", FileRole.GUEST_FIX),
++        ) + (COMMON_PAYLOADS + listOf("bt", "nfcservices", "conscrypt", "profiling", "telephonycore"))
++            .map { PackageFile("${it}_payload.img", FileRole.APEX_PAYLOAD) },
++        omitted = listOf(TETHERING, CELLBROADCAST),
++        approxBytes = 392_774_095L + 45_796_971L,
++        hasReturnApp = true,
++    )
++
++    val ALL: List<PackageSet> = listOf(N6_GLOBAL_F8, N6_F8U, X9U_IN_1105_SULTRA, PIXEL_F8U, PIXEL_SULTRA, PIXEL_F8, PIXEL9_SULTRA, INFINITYX, HYPER_F8U, HYPER_HK, NOTHING_F8U, NOTHING_A, OXYGEN16, OXYGEN17_PAD, ORIGINOS, LINEAGE, ONEUI95, ONEUI95_F8, ONEUI95_A16, PIXELOS, RAKSHA)
+ 
+     fun byId(id: String, sets: List<PackageSet> = ALL): PackageSet? = sets.firstOrNull { it.id == id }
+ }
+diff --git a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Profiles.kt b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Profiles.kt
+index f701629..955b48d 100644
+--- a/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Profiles.kt
++++ b/app-android/core/model/src/main/kotlin/com/fahadali/oneos/core/model/Profiles.kt
+@@ -393,7 +393,7 @@ object Profiles {
+         form = FormFactor.BAR,
+         // 0.4.10: the Pixel 11 Pro image too, untested. SM8850 has the SVE that
+         // Pixel's system code needs; the SM8750 phones do not.
+-        choices = S_ULTRA_CHOICES + ImageChoice(Images.ID_PIXEL_KODIAK, PackageSets.ID_PIXEL_SULTRA, tested = false) + INFINITYX_TESTED + LINEAGE_CHOICE + HYPEROS_CHOICE + HYPEROS_HK_CHOICE +
++        choices = S_ULTRA_CHOICES + ImageChoice(Images.ID_PIXEL_KODIAK, PackageSets.ID_PIXEL_SULTRA, tested = false) + ImageChoice(Images.ID_RAKSHA, PackageSets.ID_RAKSHA, tested = false) + INFINITYX_TESTED + LINEAGE_CHOICE + HYPEROS_CHOICE + HYPEROS_HK_CHOICE +
+             NOTHING_CHOICE + ORIGINOS_CHOICE + ONEUI95_CHOICE,
+     ))
+ 
+@@ -856,7 +856,7 @@ object Profiles {
+         codename = "dm3q",
+         socModel = "SM8550",
+         form = FormFactor.BAR,
+-        choices = listOf(X9U_IN_1105_CHOICE, PIXEL9_CHOICE, INFINITYX_CHOICE, LINEAGE_CHOICE, HYPEROS_CHOICE, HYPEROS_HK_CHOICE.copy(tested = true), OXYGEN16_CHOICE, NOTHING_CHOICE.copy(tested = true), ORIGINOS_CHOICE) + ONEUI95_CHOICE, // 0.5.19: Nothing OS (Metroid) at the owner's request, untested
++        choices = listOf(X9U_IN_1105_CHOICE, PIXEL9_CHOICE, ImageChoice(Images.ID_RAKSHA, PackageSets.ID_RAKSHA, tested = false), INFINITYX_CHOICE, LINEAGE_CHOICE, HYPEROS_CHOICE, HYPEROS_HK_CHOICE.copy(tested = true), OXYGEN16_CHOICE, NOTHING_CHOICE.copy(tested = true), ORIGINOS_CHOICE) + ONEUI95_CHOICE, // 0.5.19: Nothing OS (Metroid) at the owner's request, untested
+         notes = listOf(EXPECT_NO_START),
+     ))
+ 
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ApkSeriesTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ApkSeriesTest.kt
+index 39e3746..d76d929 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ApkSeriesTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ApkSeriesTest.kt
+@@ -46,7 +46,7 @@ class ApkSeriesTest {
+                 // 0.5.35: PixelOS on every One UI 9 bar phone.
+                 PackageSets.ID_PIXELOS,
+                 // 0.5.28: the S26 FE takes the Z Flip7's systems, its Pixel 9 Pro XL set among them.
+-                PackageSets.ID_PIXEL9_SULTRA),
++                PackageSets.ID_PIXEL9_SULTRA, PackageSets.ID_RAKSHA),
+             ApkSeries.S26.setIds().intersect(ApkSeries.S25.setIds()),
+         )
+         for (s in ApkSeries.entries) assertNotEquals(s.id, PackageSets.ALL.size, s.setIds().size)
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/GatesTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/GatesTest.kt
+index 0c5cf1a..00a6c99 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/GatesTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/GatesTest.kt
+@@ -578,7 +578,7 @@ class GatesTest {
+             // 0.4.27: Infinity-X, on every phone; 0.5.06: LineageOS 24 after it; 0.4.31: HyperOS; then Nothing OS.
+             val last = listOf(Images.NOTHING_METROID, Images.ORIGINOS7, Images.PIXELOS_ONYX, Images.ONEUI95) // 0.4.35 the S26 Ultra, 0.4.36 the S25s too; 0.4.73 OriginOS 7; 0.5.22 One UI 9.5
+             assertEquals(
+-                usual + (if (p == Profiles.S_ULTRA_8850) Images.PIXEL_KODIAK else Images.PIXEL_KOMODO) + Images.INFINITYX + Images.LINEAGE24 + Images.HYPEROS_LHASA + Images.HYPEROS_HONGKONG + last,
++                usual + (if (p == Profiles.S_ULTRA_8850) listOf(Images.PIXEL_KODIAK, Images.RAKSHA17) else listOf(Images.PIXEL_KOMODO)) + Images.INFINITYX + Images.LINEAGE24 + Images.HYPEROS_LHASA + Images.HYPEROS_HONGKONG + last,
+                 p.images(),
+             )
+             for ((image, set) in listOf(Images.FIND_X9U_IN_1105 to PackageSets.X9U_IN_1105_SULTRA)) {
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ImagesTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ImagesTest.kt
+index 5349753..1e9af24 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ImagesTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ImagesTest.kt
+@@ -55,7 +55,7 @@ class ImagesTest {
+         // (Nothing's are product/priv-app GmsCore, Phonesky, GooglePartnerSetup, GoogleRestore, ConfigUpdater
+         // and system_ext/priv-app GoogleServicesFramework: six folders guest_prepare.sh's patterns cover).
+         assertEquals(
+-            listOf(n6, xin, pixel, Images.PIXEL_KODIAK, Images.PIXEL_KOMODO, Images.INFINITYX, Images.HYPEROS_HONGKONG, Images.NOTHING_METROID, Images.NOTHING_ASTEROIDS, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.ORIGINOS7, Images.LINEAGE24, Images.ONEUI95, Images.PIXELOS_ONYX),
++            listOf(n6, xin, pixel, Images.PIXEL_KODIAK, Images.PIXEL_KOMODO, Images.INFINITYX, Images.HYPEROS_HONGKONG, Images.NOTHING_METROID, Images.NOTHING_ASTEROIDS, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.ORIGINOS7, Images.LINEAGE24, Images.ONEUI95, Images.PIXELOS_ONYX, Images.RAKSHA17),
+             Images.ALL.filter { it.googleServices },
+         )
+         // 0.5.06: LineageOS 24 has none of its own: its Google apps are One UI's, laid over the guest at session time
+@@ -93,11 +93,11 @@ class ImagesTest {
+         assertEquals(SystemFamily.ONEUI, oneui.family)
+         // 0.4.73: OriginOS 7 presents the Play services of its own gmssystem payload, as the Pixel images.
+         assertEquals(listOf(pixel, Images.PIXEL_KODIAK, Images.PIXEL_KOMODO, Images.INFINITYX, Images.HYPEROS_HONGKONG, Images.NOTHING_ASTEROIDS, Images.ORIGINOS7, Images.ONEUI95, Images.PIXELOS_ONYX), Images.ALL.filter { it.presentsGms })
+-        assertEquals(listOf(n6, xin, Images.NOTHING_METROID, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.LINEAGE24), Images.ALL.filter { it.gmsHideable })
++        assertEquals(listOf(n6, xin, Images.NOTHING_METROID, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.LINEAGE24, Images.RAKSHA17), Images.ALL.filter { it.gmsHideable })
+         assertTrue(pixel.copy(presentsGms = false).gmsHideable)
+         assertEquals(
+             listOf(n6, xin, pixel, Images.PIXEL_KODIAK, Images.PIXEL_KOMODO, Images.INFINITYX, Images.HYPEROS_LHASA, Images.HYPEROS_HONGKONG, Images.NOTHING_METROID, Images.NOTHING_ASTEROIDS, Images.OXYGEN16,
+-                Images.OXYGEN17_PAD, Images.ORIGINOS7, Images.LINEAGE24, Images.ONEUI95, Images.PIXELOS_ONYX),
++                Images.OXYGEN17_PAD, Images.ORIGINOS7, Images.LINEAGE24, Images.ONEUI95, Images.PIXELOS_ONYX, Images.RAKSHA17),
+             Images.ALL,
+         )
+         // 0.4.67: OxygenOS 16 is the one SDK 36 image, of its own family; nothing past ARMv8.2 in its core binaries.
+@@ -179,7 +179,7 @@ class ImagesTest {
+             listOf(
+                 SystemFamily.COLOROS, SystemFamily.COLOROS,
+                 SystemFamily.PIXEL, SystemFamily.PIXEL, SystemFamily.PIXEL,
+-                SystemFamily.INFINITYX, SystemFamily.HYPEROS, SystemFamily.HYPEROS, SystemFamily.NOTHING, SystemFamily.NOTHING, SystemFamily.OXYGENOS, SystemFamily.OXYGENOS, SystemFamily.ORIGINOS, SystemFamily.LINEAGE, SystemFamily.ONEUI, SystemFamily.PIXELOS, // 0.5.35: PixelOS its own family
++                SystemFamily.INFINITYX, SystemFamily.HYPEROS, SystemFamily.HYPEROS, SystemFamily.NOTHING, SystemFamily.NOTHING, SystemFamily.OXYGENOS, SystemFamily.OXYGENOS, SystemFamily.ORIGINOS, SystemFamily.LINEAGE, SystemFamily.ONEUI, SystemFamily.PIXELOS, SystemFamily.RAKSHA, // 0.5.35: PixelOS its own family
+             ),
+             Images.ALL.map { it.family },
+         )
+@@ -205,6 +205,18 @@ class ImagesTest {
+ 
+     private fun id(check: ImageFileCheck, profile: PhoneProfile? = Profiles.S_ULTRA_8850) = ImageIdentifier.identify(check, profile)
+ 
++    @Test
++    fun rakshaTrialNeedsPinnedHashAndSupportedPhone() {
++        val raksha = Images.RAKSHA17
++        val file = ImageFileCheck(raksha.gzName, raksha.gzBytes, raksha.gzSha256, raksha.gzBytes)
++        val result = ImageIdentifier.identify(file, Profiles.S_ULTRA_8850)
++        assertEquals(ImageState.VERIFIED, result.state)
++        assertEquals(raksha, result.image)
++        assertEquals(ImageState.VERIFIED, ImageIdentifier.identify(file, Profiles.S_ULTRA_8550).state)
++        assertEquals(ImageState.WRONG_FOR_PHONE, ImageIdentifier.identify(file, Profiles.S_ULTRA_8750).state)
++        assertEquals(ImageState.DAMAGED, id(file.copy(sha256 = "0".repeat(64))).state)
++    }
++
+     @Test
+     fun verifiedOnlyWithTheRightSizeAndHash() {
+         val ok = id(ImageFileCheck(xin.gzName, xin.gzBytes, xin.gzSha256, xin.gzBytes))
+@@ -248,7 +260,7 @@ class ImagesTest {
+         // The BLOCK names every image the phone takes.
+         assertEquals(
+             "This is the Find N6 image; Galaxy S26 Ultra takes the Find X9 Ultra IN (Nov) image (OneOS_ColorOS17_FindX9Ultra_IN_1105.img.gz) " +
+-                "or the Pixel 11 Pro image (OneOS_Pixel11Pro_Full_S26U.img.gz) " +
++                "or the Pixel 11 Pro image (OneOS_Pixel11Pro_Full_S26U.img.gz) or the Raksha Mobile image (RakshaMobileOS17_Awakening.img.gz) " +
+                 "or the Infinity-X image (OneOS_InfinityX_FindX9Ultra.img.gz) or the OnePlus 15 image (OneOS_LineageOS24_OnePlus15.img.gz) or the Xiaomi 18 Fold image (OneOS_HyperOS_Xiaomi18Fold_ZFold8.img.gz) " +
+                 "or the HyperOS 4 Global image (OneOS_HyperOS4_Global.img.gz) or the Nothing OS image (OneOS_NothingOS5_Metroid.img.gz) or the OriginOS 7 image (OneOS_OriginOS7_PD2609MA.img.gz) or the PixelOS image (OneOS_PixelOS17_POCOF7.img.gz) or the Galaxy S26 Ultra image (OneOS_OneUI9.5_S26Ultra.img.gz).",
+             n6OnS26.finding.detail,
+@@ -309,7 +321,7 @@ class ImagesTest {
+         val origin = Images.ORIGINOS7
+         val takes = mapOf(
+             Profiles.F8U to listOf(n6, pixel, ifx, lineage, hyper, hyperHk, nothing, origin, Images.ONEUI95),
+-            Profiles.S_ULTRA_8850 to listOf(xin, Images.PIXEL_KODIAK, ifx, lineage, hyper, hyperHk, nothing, origin, Images.PIXELOS_ONYX, Images.ONEUI95),
++            Profiles.S_ULTRA_8850 to listOf(xin, Images.PIXEL_KODIAK, Images.RAKSHA17, ifx, lineage, hyper, hyperHk, nothing, origin, Images.PIXELOS_ONYX, Images.ONEUI95),
+             // 0.4.22: the Pixel 9 Pro XL image on the phones without SVE.
+             Profiles.S_ULTRA_8750 to listOf(xin, Images.PIXEL_KOMODO, ifx, lineage, hyper, hyperHk, nothing, origin, Images.PIXELOS_ONYX, Images.ONEUI95),
+             Profiles.S_8750 to listOf(xin, Images.PIXEL_KOMODO, ifx, lineage, hyper, hyperHk, nothing, origin, Images.PIXELOS_ONYX, Images.ONEUI95),
+@@ -365,7 +377,7 @@ class ImagesTest {
+         )
+         assertEquals(
+             "Galaxy S26 Ultra takes the Find X9 Ultra IN (Nov) image (OneOS_ColorOS17_FindX9Ultra_IN_1105.img.gz) " +
+-                "or the Pixel 11 Pro image (OneOS_Pixel11Pro_Full_S26U.img.gz) " +
++                "or the Pixel 11 Pro image (OneOS_Pixel11Pro_Full_S26U.img.gz) or the Raksha Mobile image (RakshaMobileOS17_Awakening.img.gz) " +
+                 "or the Infinity-X image (OneOS_InfinityX_FindX9Ultra.img.gz) or the OnePlus 15 image (OneOS_LineageOS24_OnePlus15.img.gz) or the Xiaomi 18 Fold image (OneOS_HyperOS_Xiaomi18Fold_ZFold8.img.gz) " +
+                 "or the HyperOS 4 Global image (OneOS_HyperOS4_Global.img.gz) or the Nothing OS image (OneOS_NothingOS5_Metroid.img.gz) or the OriginOS 7 image (OneOS_OriginOS7_PD2609MA.img.gz) or the PixelOS image (OneOS_PixelOS17_POCOF7.img.gz) or the Galaxy S26 Ultra image (OneOS_OneUI9.5_S26Ultra.img.gz)",
+             ImageIdentifier.accepts(Profiles.S_ULTRA_8850),
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/PackageSetsTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/PackageSetsTest.kt
+index 15aa4b9..96b8905 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/PackageSetsTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/PackageSetsTest.kt
+@@ -48,7 +48,7 @@ class PackageSetsTest {
+         assertEquals("out/overlays_pixel_f8u_r21", pixel.sourceDir)
+         assertEquals(
+             listOf(PackageSets.N6_GLOBAL_F8, n6, PackageSets.X9U_IN_1105_SULTRA, pixel, PackageSets.PIXEL_SULTRA, PackageSets.PIXEL_F8, PackageSets.PIXEL9_SULTRA,
+-                PackageSets.INFINITYX, PackageSets.HYPER_F8U, PackageSets.HYPER_HK, PackageSets.NOTHING_F8U, PackageSets.NOTHING_A, PackageSets.OXYGEN16, PackageSets.OXYGEN17_PAD, PackageSets.ORIGINOS, PackageSets.LINEAGE, PackageSets.ONEUI95, PackageSets.ONEUI95_F8, PackageSets.ONEUI95_A16, PackageSets.PIXELOS),
++                PackageSets.INFINITYX, PackageSets.HYPER_F8U, PackageSets.HYPER_HK, PackageSets.NOTHING_F8U, PackageSets.NOTHING_A, PackageSets.OXYGEN16, PackageSets.OXYGEN17_PAD, PackageSets.ORIGINOS, PackageSets.LINEAGE, PackageSets.ONEUI95, PackageSets.ONEUI95_F8, PackageSets.ONEUI95_A16, PackageSets.PIXELOS, PackageSets.RAKSHA),
+             PackageSets.ALL,
+         )
+         // PixelOS 17 (0.5.35): the Lineage-like set for the A series, with the guest vold and its own gmssystem.
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ProfilesTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ProfilesTest.kt
+index 4e6de64..2093ca1 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ProfilesTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/ProfilesTest.kt
+@@ -77,7 +77,7 @@ class ProfilesTest {
+         // 0.4.51: the IN build only (the debloated Find X9 Ultra build retired), tested where that one was.
+         val sUltra = listOf(xinT)
+         // 0.4.10: and the Pixel 11 Pro image with its own set, untested.
+-        assertEquals(sUltra + ImageChoice(Images.ID_PIXEL_KODIAK, PackageSets.ID_PIXEL_SULTRA, tested = false) + ifxT + lineage + hyper + hyperHk + nothing + origin + px + oneui, s26.choices)
++        assertEquals(sUltra + ImageChoice(Images.ID_PIXEL_KODIAK, PackageSets.ID_PIXEL_SULTRA, tested = false) + ImageChoice(Images.ID_RAKSHA, PackageSets.ID_RAKSHA, tested = false) + ifxT + lineage + hyper + hyperHk + nothing + origin + px + oneui, s26.choices)
+         assertTrue(s26.testedWithAnyImage && s26.enabled)
+ 
+         val s25 = Profiles.S_ULTRA_8750
+@@ -283,7 +283,7 @@ class ProfilesTest {
+                     ImageChoice(Images.ID_OXYGEN16, PackageSets.ID_OXYGEN16, tested = false), nothing, origin, px, oneui), // 0.5.22: One UI 9.5; 0.5.19: Nothing OS (Metroid), owner
+                 p.choices.map { it.copy(tested = false) },
+             )
+-            assertEquals(Profiles.S_ULTRA_8550.choices.map { it.copy(tested = false) }, p.choices.map { it.copy(tested = false) })
++            assertEquals(Profiles.S_ULTRA_8550.choices.filter { it.imageId != Images.ID_RAKSHA }.map { it.copy(tested = false) }, p.choices.map { it.copy(tested = false) })
+             assertEquals(listOf(Profiles.ID_NOTE_EXPECT_NO_START), p.notes.map { it.id })
+             assertEquals(Level.WARN, p.notes.single().level)
+         }
+diff --git a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/SessionEnvTest.kt b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/SessionEnvTest.kt
+index a75f34c..8cad062 100644
+--- a/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/SessionEnvTest.kt
++++ b/app-android/core/model/src/test/kotlin/com/fahadali/oneos/core/model/SessionEnvTest.kt
+@@ -211,7 +211,7 @@ class SessionEnvTest {
+         // 0.4.38: the Find N6 global build's.
+         // 0.4.67: OxygenOS 16 too (Google in the image, no gmssystem payload in its set).
+         // 0.5.06: LineageOS 24 too (its Google apps are One UI's, added by guest_google.sh; none from a payload).
+-        assertEquals(listOf(Images.FIND_N6, Images.FIND_X9U_IN_1105, Images.NOTHING_METROID, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.LINEAGE24), Images.ALL.filter { it.gmsHideable })
++        assertEquals(listOf(Images.FIND_N6, Images.FIND_X9U_IN_1105, Images.NOTHING_METROID, Images.OXYGEN16, Images.OXYGEN17_PAD, Images.LINEAGE24, Images.RAKSHA17), Images.ALL.filter { it.gmsHideable })
+         assertEquals(
+             listOf("ONEOS_GUEST_HIDE_GMS", "ONEOS_HEAT_CAP", "ONEOS_GUEST_SEC_IMS", "ONEOS_GUEST_EDM_STUB", "ONEOS_VERBOSE_BOOT", "ONEOS_FULL_LOGS", "ONEOS_SHARE_FILES", "ONEOS_RETURN_MODE"),
+             SessionEnv.ALLOWED.keys.toList().takeLast(8),
+diff --git a/app-android/core/root/src/main/kotlin/com/fahadali/oneos/core/root/StageStatus.kt b/app-android/core/root/src/main/kotlin/com/fahadali/oneos/core/root/StageStatus.kt
+index 96715c8..2a26513 100644
+--- a/app-android/core/root/src/main/kotlin/com/fahadali/oneos/core/root/StageStatus.kt
++++ b/app-android/core/root/src/main/kotlin/com/fahadali/oneos/core/root/StageStatus.kt
+@@ -24,6 +24,8 @@ enum class GuestData {
+     EMPTY,
+     COLOROS,
+     LINEAGEOS,
++    /** Raksha's Lineage-derived data, only when the exact Raksha image owns the OneOS stage. */
++    RAKSHA,
+ 
+     /** Pixel's launcher, com.google.android.apps.nexuslauncher (the Pixel image's system_ext/priv-app), and no ColorOS package (0.3.7). */
+     PIXEL,
+@@ -67,6 +69,7 @@ enum class GuestData {
+             OXYGENOS -> SystemFamily.OXYGENOS
+             ORIGINOS -> SystemFamily.ORIGINOS
+             PIXELOS -> SystemFamily.PIXELOS
++            RAKSHA -> SystemFamily.RAKSHA
+             else -> null
+         }
+ 
+@@ -279,7 +282,14 @@ data class StageStatus(
+         (sums.entries.keys - want.toSet()).forEach { p += "files.sha256 lists $it" }
+         for (e in entries) {
+             if (e.type == 'd' || e.name.contains('/')) continue
+-            if (LEFTOVER.matches(e.name) && e.name !in want && e.name !in RUNTIME) p += "${e.name} is in the stage but was not prepared"
++            if (e.name in RUNTIME) {
++                val mode = e.mode.toIntOrNull(8)
++                if (e.type != 'f' || e.uid != 0 || mode == null || (mode and 0b010010) != 0) {
++                    p += "${e.name} is not a root-owned runtime file"
++                }
++            } else if (LEFTOVER.matches(e.name) && e.name !in want) {
++                p += "${e.name} is in the stage but was not prepared"
++            }
+         }
+         val id = rawId
+         when {
+@@ -306,8 +316,8 @@ data class StageStatus(
+          */
+         val LEFTOVER = Regex("""^(.*_patched.*|.*_payload\.img|.*\.apk|.*\.jar|.*\.so|.*\.sh|.*\.tar|Fold8AngleRelay\.dex|zygote_exec|oneos_btaudio|oneos_essential_key|socket_exec|clean_apex_info_list\.xml|oneui_floating_add\.txt|oneos-.*)$""")
+ 
+-        /** Written into the stage by the session itself (guest_prepare.sh's watchdog feeder, still running after an in-place return). */
+-        val RUNTIME = setOf("oneos_wdog_feeder.sh")
++        /** Session helpers that can remain after an in-place return. Matches root's check_files. */
++        val RUNTIME = setOf("oneos_wdog_feeder.sh", "bring_watch.sh", "guest_panel_fit.sh", "logcat_capture.sh")
+ 
+         /** The list's entry ids and their output files. */
+         val OUTPUTS: Map<String, String> = linkedMapOf(
+@@ -390,12 +400,15 @@ data class StageStatus(
+             val persist = session.filter { it.contains('=') && !it.startsWith("boot=") }
+                 .associate { it.substringBefore('=') to it.substringAfter('=') }
+             val guestLines = lines("stage.guest")
++            val markedRaksha = markerText?.takeUnless { it.startsWith("updating\n") }
++                ?.let(StageMarker::parse)?.imageId == Images.ID_RAKSHA
+             val guest = when {
+                 statuses["stage.guest"] != ProbeStatus.OK -> GuestData.NONE
+                 guestLines.any { it == "packages $PIXELOS_WORD" } -> GuestData.PIXELOS
+                 guestLines.any { it == "packages $INFINITYX_WORD" } -> GuestData.INFINITYX
+                 guestLines.any { it == "packages $OXYGENOS_WORD" } -> GuestData.OXYGENOS
+                 guestLines.any { it == "packages $ORIGINOS_WORD" } -> GuestData.ORIGINOS
++                markedRaksha && guestLines.any { it == "packages org.lineageos." } -> GuestData.RAKSHA
+                 guestLines.any { it == "packages org.lineageos." } -> GuestData.LINEAGEOS
+                 guestLines.any { it == "packages com.oplus." || it == "packages com.coloros." } -> GuestData.COLOROS
+                 guestLines.any { it == "packages $PIXEL_WORD" } -> GuestData.PIXEL
+diff --git a/app-android/core/root/src/test/kotlin/com/fahadali/oneos/core/root/StageStatusTest.kt b/app-android/core/root/src/test/kotlin/com/fahadali/oneos/core/root/StageStatusTest.kt
+index 92a81ed..4edd964 100644
+--- a/app-android/core/root/src/test/kotlin/com/fahadali/oneos/core/root/StageStatusTest.kt
++++ b/app-android/core/root/src/test/kotlin/com/fahadali/oneos/core/root/StageStatusTest.kt
+@@ -238,6 +238,11 @@ class StageStatusTest {
+         assertEquals(GuestData.PIXEL, pixelStage().guest)
+         assertEquals(GuestData.COLOROS, status(prepared(mapOf("stage.guest" to "packages com.oplus.\n$pixelLine"))).guest)
+         assertEquals(GuestData.LINEAGEOS, status(prepared(mapOf("stage.guest" to "packages org.lineageos.\n$pixelLine"))).guest)
++        val rakshaStage = status(prepared(mapOf("stage.guest" to "packages org.lineageos.\n"), image = Images.RAKSHA17, set = PackageSets.RAKSHA))
++        assertEquals(GuestData.RAKSHA, rakshaStage.guest)
++        assertEquals(SystemFamily.RAKSHA, rakshaStage.guest.family)
++        assertEquals(listOf(k, a), rakshaStage.beginModes(Images.ID_RAKSHA))
++        assertEquals(listOf(a), rakshaStage.beginModes(n6.id))
+         assertEquals(SystemFamily.PIXEL, GuestData.PIXEL.family)
+         assertEquals(SystemFamily.COLOROS, GuestData.COLOROS.family)
+         for (g in listOf(GuestData.NONE, GuestData.EMPTY, GuestData.LINEAGEOS, GuestData.OTHER)) {
+@@ -339,8 +344,13 @@ class StageStatusTest {
+         for (n in listOf("OneOSPixelStatusBar.apk", "OneOSPhoneInjection.apk", "oneos-telephony.jar", "oneos-telephony.sha256", "gmssystem_payload.img")) {
+             assertTrue(n, problems(Images.FIND_N6, PackageSets.N6_F8U, "f 0 644 10 $n\n").contains("$n is in the stage but was not prepared"))
+         }
+-        // The session's own watchdog feeder is not another set's file.
+-        assertFalse(problems(Images.FIND_N6, PackageSets.N6_F8U, "f 0 700 10 oneos_wdog_feeder.sh\n").any { "oneos_wdog_feeder.sh" in it })
++        val runtime = listOf("oneos_wdog_feeder.sh", "bring_watch.sh", "guest_panel_fit.sh", "logcat_capture.sh")
++        for (n in runtime) {
++            assertEquals(emptyList<String>(), problems(Images.FIND_N6, PackageSets.N6_F8U, "f 0 700 10 $n\n"))
++            for (entry in listOf("l 0 777", "f 2000 700", "f 0 664", "f 0 646")) {
++                assertTrue(problems(Images.FIND_N6, PackageSets.N6_F8U, "$entry 10 $n\n").contains("$n is not a root-owned runtime file"))
++            }
++        }
+         // ColorOS's files in the Pixel stage.
+         for (n in listOf("surfaceflinger_patched", "oplus-services_patched.jar", "OneOSWallpapersFoldGrid.apk")) {
+             assertTrue(n, problems(Images.PIXEL_YOGI, PackageSets.PIXEL_F8U, "f 0 644 10 $n\n").contains("$n is in the stage but was not prepared"))
+diff --git a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestArtworkView.kt b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestArtworkView.kt
+index cacd80d..ea05395 100644
+--- a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestArtworkView.kt
++++ b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestArtworkView.kt
+@@ -23,6 +23,7 @@ class GuestArtworkView @JvmOverloads constructor(context: Context, attrs: Attrib
+     }
+     fun bind(image: String?) = bindArtwork(when {
+         image?.contains("One UI", true) == true -> R.drawable.os_oneui
++        image?.contains("Raksha", true) == true -> R.drawable.os_raksha
+         image?.contains("Pixel", true) == true -> R.drawable.os_pixel
+         image?.contains("Hyper", true) == true -> R.drawable.os_hyperos
+         image?.contains("Nothing", true) == true -> R.drawable.os_nothing
+@@ -43,6 +44,7 @@ class GuestArtworkView @JvmOverloads constructor(context: Context, attrs: Attrib
+             R.drawable.os_originos -> SystemFamily.ORIGINOS
+             R.drawable.os_lineage -> SystemFamily.LINEAGE
+             R.drawable.os_oneui -> SystemFamily.ONEUI
++            R.drawable.os_raksha -> SystemFamily.RAKSHA
+             R.drawable.os_pixel -> SystemFamily.PIXEL
+             else -> SystemFamily.COLOROS
+         }
+@@ -67,6 +69,7 @@ class GuestArtworkView @JvmOverloads constructor(context: Context, attrs: Attrib
+             SystemFamily.ORIGINOS -> R.drawable.os_originos_header
+             SystemFamily.LINEAGE -> R.drawable.os_lineage_header
+             SystemFamily.ONEUI -> R.drawable.os_oneui_header
++            SystemFamily.RAKSHA -> R.drawable.os_raksha
+             SystemFamily.PIXEL -> R.drawable.os_pixel_header
+             else -> R.drawable.os_coloros_header
+         }
+diff --git a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestModulesActivity.kt b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestModulesActivity.kt
+index 02fab03..bd5fe69 100644
+--- a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestModulesActivity.kt
++++ b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/GuestModulesActivity.kt
+@@ -54,7 +54,13 @@ class GuestModulesActivity : AppCompatActivity() {
+         toolbar.findViewById<dev.oneuiproject.oneui.widget.RoundedFrameLayout>(dev.oneuiproject.oneui.design.R.id.tbl_main_content).apply { roundedCorners = 0; fillHorizontalPadding = false }
+         toolbar.findViewById<View>(dev.oneuiproject.oneui.design.R.id.tbl_bottom_corners).visibility = View.GONE
+         val scroll = findViewById<NestedScrollView>(R.id.guest_modules_scroll)
+-        if (GuestName.read()?.contains("Infinity", true) != true) {
++        val guestSystem = GuestName.read()
++        val noFade = guestSystem == null ||
++            guestSystem.contains("Infinity", true) ||
++            guestSystem.contains("Raksha", true) ||
++            guestSystem.contains("Lineage", true) ||
++            guestSystem.contains("crDroid", true)
++        if (!noFade) {
+             scroll.seslSetFadingEdgeEnabled(true); scroll.seslSetFadingEdgeColor(getColor(R.color.preboot_page))
+         }
+         footer.addOnLayoutChangeListener { _,_,_,_,_,_,_,_,_ ->
+diff --git a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/MainActivity.kt b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/MainActivity.kt
+index 22702e2..1511ba5 100644
+--- a/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/MainActivity.kt
++++ b/app-android/guest/src/main/kotlin/com/fahadali/oneos/guest/MainActivity.kt
+@@ -63,17 +63,22 @@ class MainActivity : AppCompatActivity() {
+             }
+             insets
+         }
+-        scroll.seslSetFadingEdgeColor(getColor(R.color.guest_page_background))
+-        scroll.seslSetFadingEdgeWindowBottomAlignment(!wide)
+         val fadeGap = (24 * resources.displayMetrics.density).toInt()
+-        val noFade = GuestName.read()?.contains("Infinity", ignoreCase = true) == true
++        val noFade = system == null ||
++            system.contains("Infinity", ignoreCase = true) ||
++            system.contains("Raksha", ignoreCase = true) ||
++            system.contains("Lineage", ignoreCase = true) ||
++            system.contains("crDroid", ignoreCase = true)
++        if (!noFade) {
++            scroll.seslSetFadingEdgeColor(getColor(R.color.guest_page_background))
++            scroll.seslSetFadingEdgeWindowBottomAlignment(!wide)
++        }
+         footer.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+             val nav = if (wide) 0 else (footer.layoutParams as android.view.ViewGroup.MarginLayoutParams).bottomMargin
+             val clearance = if (wide) fadeGap else footer.height + nav + fadeGap
+             if (scroll.paddingBottom != clearance) scroll.setPadding(0, 0, 0, clearance)
+-            // Not on Infinity-X (0.4.43): its own libhwui crashed on this screen's first frame
+-            // (SkCanvas::internalQuickReject, RenderThread, 37 times in report 71a26ead), so Back to
+-            // One UI could not be reached from the app there. The fade is cosmetic.
++            // Not on Infinity-X / Lineage / Raksha: their libhwui crashes on this screen's first frame
++            // (SkCanvas / GrFragmentProcessors::Make SIGTRAP on RenderThread). The fade is cosmetic.
+             if (!noFade) {
+                 scroll.seslSetFadingEdgeEnabled(true, fadeGap, clearance)
+                 if (!wide) scroll.seslForceBottomFadingEdgeClamped(clearance)
+diff --git a/app-android/packages/series.txt b/app-android/packages/series.txt
+index bd21e3c..806e500 100644
+--- a/app-android/packages/series.txt
++++ b/app-android/packages/series.txt
+@@ -2,5 +2,5 @@
+ # a series id and the package sets its APK carries. ApkSeries lists the same
+ # sets, every set its phones' systems use (ApkSeriesTest).
+ fold n6-global-f8 hyper-f8u hyper-hk infinityx lineage n6-f8u nothing-f8u oneui95 oneui95-f8 originos oxygen16 pixel-f8 pixel-f8u
+-s26 hyper-f8u hyper-hk infinityx lineage nothing-f8u oneui95 originos pixel-sultra pixel9-sultra pixelos x9u-in-1105-sultra
+-s25 hyper-f8u hyper-hk infinityx lineage nothing-a nothing-f8u oneui95 originos oxygen16 oxygen17pad pixel9-sultra pixelos x9u-in-1105-sultra
++s26 hyper-f8u hyper-hk infinityx lineage nothing-f8u oneui95 originos pixel-sultra pixel9-sultra pixelos raksha x9u-in-1105-sultra
++s25 hyper-f8u hyper-hk infinityx lineage nothing-a nothing-f8u oneui95 originos oxygen16 oxygen17pad pixel9-sultra pixelos raksha x9u-in-1105-sultra
+diff --git a/app-android/settings.gradle.kts b/app-android/settings.gradle.kts
+index 9a83e85..6a4df29 100644
+--- a/app-android/settings.gradle.kts
++++ b/app-android/settings.gradle.kts
+@@ -24,16 +24,19 @@ pluginManagement {
+     }
+ }
+ 
+-// SESL (io.github.oneuiproject.sesl:*) and the One UI design library are on
+-// Maven Central: no GitHub Packages token needed (docs/app/DESIGN.md, top).
++// SESL 9 and the tribalfs One UI design library are published in three
++// repository-scoped GitHub Packages registries. GitHub Maven URLs do not
++// expand wildcards, even when the package coordinates are public.
+ dependencyResolutionManagement {
+     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+     repositories {
+         google()
+         mavenCentral()
+         maven("https://jitpack.io")
+-        maven("https://maven.pkg.github.com/tribalfs/*") {
+-            credentials { username = ghPackagesUser; password = ghPackagesToken }
++        for (repository in listOf("sesl-androidx", "sesl-material-components-android", "oneui-design")) {
++            maven("https://maven.pkg.github.com/tribalfs/$repository") {
++                credentials { username = ghPackagesUser; password = ghPackagesToken }
++            }
+         }
+     }
+ }
+diff --git a/scripts/make-overlays.sh b/scripts/make-overlays.sh
+index 2866b00..bc57cf2 100755
+--- a/scripts/make-overlays.sh
++++ b/scripts/make-overlays.sh
+@@ -72,6 +72,20 @@ work, vold_out, inc_out = sys.argv[1:4]
+ NAME = (b"\0vold\0", b"\0gvld\0")
+ TRY_START = (bytes.fromhex("b3060036"), bytes.fromhex("35000014"))
+ BUILDS = [
++    # RakshaOS trial from the S918BXXUAGZIF crDroid/AOSP partitions, rebuilt
++    # by MysticGSI on 2026-11-20. VoldNativeService::start() passes the only
++    # "vold" string (adrp/add at 0x68184/0x68188) to String16; the remaining
++    # references are log tags. VendorVoldNativeService::try_start() branches
++    # on isDeclared() at 0x67b38; its not-declared path returns without
++    # registering android.system.vold.IVold/default. service.incremental.so's
++    # two lookups use the string at 0x649b1 (adr at 0xc1f9c, adrp/add at
++    # 0xc498c/0xc4990). The AOSP crashrecovery capex has the isDisabled()
++    # property checks required by guest_start.sh before RescueParty's reset.
++    ("RakshaOS Android 17 S918BXXUAGZIF MysticGSI trial", {
++        "vold": "cb24e2fdb819e0d4c0b613f3bfa6872bd68916339e839f3c2883ee36783d5315",
++        "service.incremental.so": "e1bb1c6474d121bb9640b21a49073b1140b99613260c1bc02b49a7abbc04597a",
++        "crashrecovery-aosp.capex": "2f68aaf5ef2e738812abfbd9f8545816940c05d1aae74257cbd5a8c18852ea3b",
++    }, [("vold", 0xdf7d, NAME), ("vold", 0x67b38, TRY_START), ("service.incremental.so", 0x649b0, NAME)]),
+     ("Pixel 17 (yogi)", {
+         "vold": "5ecfb2f67a941129a382a150a865d01ad62898d534dafc102ac1fab832b335b7",
+         "service.incremental.so": "3add0c259ba1e76378359d556d792136f96ce75197c99ff9d3d7fe850d8e4a92",
+@@ -450,8 +464,12 @@ else
+     # Window blur stays on when the phone is warm (owner, run 45): only the
+     # thermal term leaves updateBlurEnabled(); Developer options and battery
+     # saver still turn it off (patches/guest_blur_no_thermal.py).
+-    KEY_DIRS="$KEY_DIRS $(python3 -I "$ROOT/switcher/patches/guest_blur_no_thermal.py" "$WORK/services")"
+-    echo "Window blur: not turned off by heat (BlurController.updateBlurEnabled)"
++    if [ "${ONEOS_RAKSHA_GUEST:-0}" = 1 ]; then
++        echo "Raksha guest: optional window-blur thermal patch skipped (anchor differs)"
++    else
++        KEY_DIRS="$KEY_DIRS $(python3 -I "$ROOT/switcher/patches/guest_blur_no_thermal.py" "$WORK/services")"
++        echo "Window blur: not turned off by heat (BlurController.updateBlurEnabled)"
++    fi
+ fi
+ # Qualcomm's display additions make a second built-in panel private, and the
+ # Z Fold's cover becomes display 0 when it folds: no app could use it
+diff --git a/switcher/assets/boot_status.sh b/switcher/assets/boot_status.sh
+index bcb5402..caa5583 100644
+--- a/switcher/assets/boot_status.sh
++++ b/switcher/assets/boot_status.sh
+@@ -115,7 +115,7 @@ oneos_boot_begin() {
+         case "$restart_verbose" in 1) ;; *) restart_verbose=0 ;; esac
+         oneos_boot_write verbose "$restart_verbose"
+         oneos_boot_image=$(sed -n 's/.*"image"[[:space:]]*:[[:space:]]*"\([a-z0-9-]*\)".*/\1/p' /data/local/tmp/oneos/.oneos_stage)
+-        case "$oneos_boot_image" in pixel*) oneos_boot_name='Pixel';; hyper*) oneos_boot_name='HyperOS';; nothing*) oneos_boot_name='Nothing OS 5.0';; infinity*) oneos_boot_name='Infinity-X 4.1';; lineage*) oneos_boot_name='LineageOS 24';; oxygen*) oneos_boot_name='OxygenOS 16';; originos*) oneos_boot_name='OriginOS 7';; oneui*) oneos_boot_name='One UI 9.5';; *) oneos_boot_name='ColorOS 17';; esac
++        case "$oneos_boot_image" in pixel*) oneos_boot_name='Pixel';; hyper*) oneos_boot_name='HyperOS';; nothing*) oneos_boot_name='Nothing OS 5.0';; infinity*) oneos_boot_name='Infinity-X 4.1';; lineage*) oneos_boot_name='LineageOS 24';; oxygen*) oneos_boot_name='OxygenOS 16';; originos*) oneos_boot_name='OriginOS 7';; oneui*) oneos_boot_name='One UI 9.5';; raksha17-awakening) oneos_boot_name='Raksha OS';; *) oneos_boot_name='ColorOS 17';; esac
+         oneos_boot_write system_name "$oneos_boot_name"
+         if [ "$1" = restart ]; then oneos_boot_write title "Restarting $oneos_boot_name"
+         else oneos_boot_write title "Launching into $oneos_boot_name"; fi
+diff --git a/switcher/assets/guest_prepare.sh b/switcher/assets/guest_prepare.sh
+index 4818806..2697d7d 100755
+--- a/switcher/assets/guest_prepare.sh
++++ b/switcher/assets/guest_prepare.sh
+@@ -4899,13 +4899,17 @@ echo "Guest adb: $([ "$HOST_ADB" = 1 ] && echo 'on (One UI has USB debugging on)
+ # ONEOS_GUEST_VIVO_SETUP=1 keeps the wizard.
+ PROV_GLOBAL=device_provisioned=1
+ PROV_SECURE=user_setup_complete=1
+-if [ "$GMS_WANT" = 1 ]; then
++GMS_PLAIN=0
++if [ "${ONEOS_GUEST_GMS:-1}" = 1 ] && [ "${ONEOS_GUEST_HIDE_GMS:-0}" != 1 ] && [ -f "$ROOTFS/system/product/priv-app/PrebuiltGmsCore/PrebuiltGmsCoreVic.apk" ]; then
++    GMS_PLAIN=1
++fi
++if [ "$GMS_WANT" = 1 ] || [ "$GMS_PLAIN" = 1 ]; then
+     if [ -f "$ROOTFS/system/framework/vivo-services.jar" ] && [ "${ONEOS_GUEST_VIVO_SETUP:-0}" != 1 ]; then
+         PROV_SECURE="user_setup_complete=1 setup_wizard_has_run=1"
+         echo "Guest setup: marked done (vivo's setup wizard stops at its vivo account; ONEOS_GUEST_VIVO_SETUP=1 keeps it)"
+     else
+         PROV_GLOBAL=""; PROV_SECURE=""
+-        echo "Guest setup: device_provisioned / user_setup_complete left to Pixel's setup wizard (Google services presented)"
++        echo "Guest setup: device_provisioned / user_setup_complete left to the setup wizard (Google services presented)"
+     fi
+ fi
+ seed_settings "$GSET" settings_global $ADB_SEED auto_time=0 auto_time_zone=0 $PROV_GLOBAL launcher_support_card_no_padding=1
+@@ -9136,6 +9140,12 @@ for a in "$ROOTFS"/my_product/priv-app/*GmsCore*/*.apk "$ROOTFS"/system/priv-app
+          "$GUEST_PRODUCT"/priv-app/*GmsCore*/*.apk "$GUEST_SYSTEM_EXT"/priv-app/*GmsCore*/*.apk; do
+     [ -f "$a" ] && GMS_APK=1
+ done
++if [ "$GMS_APK" = 1 ] && [ "${ONEOS_GUEST_GMS:-1}" = 1 ] && [ "${ONEOS_GUEST_HIDE_GMS:-0}" != 1 ] && [ ! -f "$STAGE/data/oneos_gms_present" ]; then
++    if [ -f "$GUEST_PRODUCT/priv-app/PrebuiltGmsCore/PrebuiltGmsCoreVic.apk" ]; then
++        echo "PrebuiltGmsCoreVic.apk $(stat -c %s "$GUEST_PRODUCT/priv-app/PrebuiltGmsCore/PrebuiltGmsCoreVic.apk")" > "$STAGE/data/oneos_gms_present"
++        echo "Google services: plain PrebuiltGmsCoreVic.apk present; setup wizard active on fresh boot"
++    fi
++fi
+ if [ "$GMS_APK" = 0 ]; then
+     n=0
+     for d in $SPLIT_DIRS; do
+diff --git a/switcher/assets/guest_start.sh b/switcher/assets/guest_start.sh
+index 2ae2a86..c2c5995 100755
+--- a/switcher/assets/guest_start.sh
++++ b/switcher/assets/guest_start.sh
+@@ -8,6 +8,12 @@ done
+ [ -n "$BB" ] || [ "${ONEOS_APP:-0}" = 1 ] || BB=$(command -v busybox 2>/dev/null)
+ [ -n "$BB" ] || { echo "[Pivoted Root] FATAL: no busybox. Not starting the guest."; exit 1; }
+ 
++# Record the image before the host filesystem is detached.
++RAKSHA_APEX_DIAG=0
++if grep -q '^  "image": "raksha17-awakening",$' /data/local/tmp/oneos/.oneos_stage; then
++    RAKSHA_APEX_DIAG=1
++fi
++
+ echo "[Pivoted Root] Preparing pivot..."
+ cd /data/local/tmp/oneos/rootfs
+ $BB mount --make-rprivate /
+@@ -4006,6 +4012,18 @@ sm_diag() {
+         dmesg 2>/dev/null | grep -iE 'servicemanager|avc:|selinux|security_compute|context' | tail -n 40 | cut -c1-300
+     } >> /data/oneos_sm_diag.log 2>&1
+ }
++if [ "$RAKSHA_APEX_DIAG" = 1 ]; then
++    echo "[Pivoted Root] Raksha APEX files before zygote:"
++    for apex_file in /system/apex/com.android.bt.apex /data/apex/decompressed/com.android.adbd@*.decompressed.apex; do
++        if [ -f "$apex_file" ]; then
++            $BB stat -Lc '%d:%i %s bytes %a %n' "$apex_file"
++            $BB sha256sum "$apex_file"
++        else
++            echo "[Pivoted Root] Raksha APEX absent: $apex_file"
++        fi
++    done
++    grep -E 'moduleName="com\.android\.(bt|adbd)"' /apex/apex-info-list.xml 2>/dev/null || true
++fi
+ sm_diag "before zygote"
+ ( sleep 45; sm_diag "45 s after zygote" ) &
+ echo "[Pivoted Root] Launching guest Zygote & SystemServer via zygote_exec..."
+diff --git a/switcher/assets/oneos_switch.sh b/switcher/assets/oneos_switch.sh
+index e049c8f..1cfe9fe 100755
+--- a/switcher/assets/oneos_switch.sh
++++ b/switcher/assets/oneos_switch.sh
+@@ -3353,7 +3353,12 @@ while true; do
+             $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/input keyevent 224
+             $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/input keyevent 82
+             $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/am unlock-user 0
+-            $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/am start -a android.intent.action.MAIN -c android.intent.category.HOME
++            _dp=\$($BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/settings get global device_provisioned 2>/dev/null)
++            if [ \"\$_dp\" = 1 ]; then
++                $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/am start -a android.intent.action.MAIN -c android.intent.category.HOME
++            else
++                echo \"[UI Activator] setup wizard active (device_provisioned=\${_dp:-0}); skipping duplicate HOME launch\"
++            fi
+             # Setup is marked done before boot (guest_prepare.sh), so ColorOS shows
+             # its swipe keyguard; there is no credential in the guest.
+             $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/wm dismiss-keyguard 2>/dev/null || true
+@@ -3455,6 +3460,8 @@ while true; do
+             fi
+             echo \"[UI Activator] refresh: min \$($BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/settings get system min_refresh_rate) peak \$($BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/settings get system peak_refresh_rate); brightness \$($BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/settings get system screen_brightness)\"
+             echo '[UI Activator] Home activated!'
++            # Play Raksha Mobile OS awakening sound once guest audio HAL & SoundFx are online.
++            $BB nsenter -t \$PID -m /system/bin/sh /data/oneos_genv.sh /system/bin/am start-foreground-service -n org.raksha.pixel.control/.WelcomeAudioService >/dev/null 2>&1 || true
+             # Exynos native libraries (Samsung Camera MFP30IF/MFP20/SNAP, MediaCodec):
+             # guest_props.sh set ro.boot.hardware=qcom solely so ColorOS's zygote64
+             # evaluated Build.IS_QCOM_PLATFORM=true and preloaded libqti_performance.so.

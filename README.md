@@ -4,7 +4,7 @@
 
 <p>
   <a href="#-quick-install-guide"><img src="https://img.shields.io/badge/Android-17_(SDK_37)-00F5FF?style=for-the-badge&logo=android&logoColor=030712" alt="Android 17"/></a>
-  <a href="https://github.com/fahadalijaved/OneOS"><img src="https://img.shields.io/badge/OneOS-v0.5.36_Dual--Boot-38BDF8?style=for-the-badge&logo=samsung&logoColor=030712" alt="OneOS v0.5.36"/></a>
+  <a href="https://github.com/fahadalijaved/OneOS"><img src="https://img.shields.io/badge/OneOS-v0.5.49_Dual--Boot-38BDF8?style=for-the-badge&logo=samsung&logoColor=030712" alt="OneOS v0.5.49"/></a>
   <a href="#-on-device-ai--openclaw"><img src="https://img.shields.io/badge/Local_AI-Qwen3.5--4B_%2B_OpenClaw-22C55E?style=for-the-badge&logo=openai&logoColor=030712" alt="Local AI"/></a>
   <a href="#-security--rf-hardware-lab"><img src="https://img.shields.io/badge/Security-Kali_NetHunter_%2B_Dolphy_RF-FF3355?style=for-the-badge&logo=kalilinux&logoColor=white" alt="Kali NetHunter + Dolphy"/></a>
   <a href="ATTRIBUTIONS.md"><img src="https://img.shields.io/badge/License-Apache_2.0_%2F_GPL--3.0-A855F7?style=for-the-badge" alt="License"/></a>
@@ -39,7 +39,7 @@
 
 | Capability | What's Baked Into `RakshaMobileOS17_Awakening` |
 |---|---|
-| **Zero-Wipe Dual-Boot** | Powered by **[OneOS `v0.5.36`](https://github.com/fahadalijaved/OneOS)** — boots full Android 17 cleanly beside stock Samsung One UI 9 and returns in-place without flashing or wiping partitions. |
+| **Zero-Wipe Dual-Boot** | Powered by **[OneOS `v0.5.49`](https://github.com/fahadalijaved/OneOS)** — boots full Android 17 cleanly beside stock Samsung One UI 9 and returns in-place without flashing or wiping partitions. |
 | **On-Device Local LLM** | **Qwen3.5-4B (`Q4_K_M`, 2.6 GB)** + native ARM64 **`llama.cpp`** (`b12633`) serving `http://127.0.0.1:8081/v1` — benchmarked live on Galaxy S26 Ultra at **54.3 tok/s prompt** / **14.7 tok/s generation** (**0.79 s** first response, 0 bytes to the cloud). |
 | **Autonomous OpenClaw Agent** | Local loopback **OpenClaw** (`127.0.0.1:18789`) + **OpenClaw Android** + **ClawCompanion** pre-wired to `raksha-qwen3.5-4b` with full `--jinja` tool-calling support. |
 | **Full Offline Kali NetHunter** | **NetHunter**, **NetHunter Terminal**, **NetHunter KeX**, static ARM64 `busybox_nh`, and the **1.75 GB Full Kali ARM64 RootFS** baked offline with 1-tap deployment via `raksha-kali-install`. |
@@ -54,7 +54,7 @@
 ```mermaid
 flowchart TB
     subgraph HOST["Samsung Galaxy S26 Ultra / S23 Ultra — Stock One UI 9 (SELinux Enforcing)"]
-        OAPP["OneOS v0.5.36 Installer APK\n(Raksha Mobile OS Integration)"]
+        OAPP["OneOS v0.5.49 Installer APK\n(Raksha Mobile OS Integration)"]
         KSU["Root Provider (KernelSU / Magisk / APatch)"]
         OAPP --> KSU
     end
@@ -104,21 +104,34 @@ flowchart TB
 - A rooted **Galaxy S26 Ultra** or **Galaxy S23 Ultra** running stock **One UI 9 (Android 17)** with KernelSU / Magisk / APatch.
 - At least **20 GB free internal storage** (for staging the compressed + raw system image).
 
-### Step 1 — Download the Release Artifacts
-Grab both verified files from the **Releases** page:
-1. **`OneOS-0.5.36-RakshaMobileOS.apk`** *(236 MB, offline self-contained)*
-2. **`RakshaMobileOS17_Awakening.img.gz`** *(6.89 GiB / 7.40 GB, AVB RSA2048 + sha256 hashtree verified)*
+### Step 1 — Download & Reassemble the Release Artifacts
+Grab all files from the **[v1.0-awakening Release](https://github.com/PasanRS/Raksha-Mobile-OS/releases/tag/v1.0-awakening)**:
+1. **`OneOS-0.5.49-RakshaMobileOS.apk`** *(237 MB, offline self-contained installer built on OneOS `v0.5.49`)*
+2. **`RakshaMobileOS17_Awakening.img.gz.part00` – `.part03`** *(split into four `< 1.9 GiB` parts to fit GitHub's 2 GiB release asset limit; reassembles to the exact 6.89 GiB AVB RSA2048 + sha256 hashtree verified image)*
+3. **`SHA256SUMS.txt`** *(checksum manifest for every file)*
 
-Verify integrity (optional):
+Reassemble **`RakshaMobileOS17_Awakening.img.gz`** and verify SHA-256:
 ```bash
-# Expected SHA-256 for v1.0-awakening (OneOS v0.5.36):
+# Linux / macOS / Termux (on-phone):
+cat RakshaMobileOS17_Awakening.img.gz.part00 \
+    RakshaMobileOS17_Awakening.img.gz.part01 \
+    RakshaMobileOS17_Awakening.img.gz.part02 \
+    RakshaMobileOS17_Awakening.img.gz.part03 \
+    > RakshaMobileOS17_Awakening.img.gz
+
+sha256sum -c SHA256SUMS.txt
+# Expected SHA-256:
 # RakshaMobileOS17_Awakening.img.gz : 5f4815fc7977acaaee4707b9faf07f09ab612b7c078d7678e050d08b1caac978
-# OneOS-0.5.36-RakshaMobileOS.apk   : 0499e5c40cf404119e60753bb82f6f3a6e62acb620c91f48ecaeefbf36eb7ebe
-sha256sum RakshaMobileOS17_Awakening.img.gz OneOS-0.5.36-RakshaMobileOS.apk
+# OneOS-0.5.49-RakshaMobileOS.apk   : 1c1cd47a2232096d24eed24b5b9208725fe147208fb8e05fc01b8cdd5eaccec4
+```
+```cmd
+:: Windows Command Prompt:
+copy /b RakshaMobileOS17_Awakening.img.gz.part00 + RakshaMobileOS17_Awakening.img.gz.part01 + RakshaMobileOS17_Awakening.img.gz.part02 + RakshaMobileOS17_Awakening.img.gz.part03 RakshaMobileOS17_Awakening.img.gz
+certutil -hashfile RakshaMobileOS17_Awakening.img.gz SHA256
 ```
 
 ### Step 2 — Stage & Boot
-1. Install **`OneOS-0.5.36-RakshaMobileOS.apk`** on One UI and grant root access.
+1. Install **`OneOS-0.5.49-RakshaMobileOS.apk`** on One UI and grant root access.
 2. Choose **Raksha Mobile · Awakening** → select **`RakshaMobileOS17_Awakening.img.gz`** → tap **Start fresh / New stage**.
 3. Tap **Switch** — watch the full-screen `1440×3120` Sinhala awakening animation and complete the single clean Raksha Setup Wizard.
 4. Once on the desktop, open **OneOS → Guest root** to grant root to **Raksha Control**, **NetHunter**, and **Termux**.
@@ -221,7 +234,7 @@ The 1.75 GB `kali-nethunter-rootfs-full-arm64.tar.xz` is already baked inside `/
 ## 🛠️ Repository Layout & Building From Source
 
 <details>
-<summary><b>Click to expand — Source Tree &amp; Reproducing the OneOS v0.5.36 Integration</b></summary>
+<summary><b>Click to expand — Source Tree &amp; Reproducing the OneOS v0.5.49 Integration</b></summary>
 
 ```text
 Raksha-Mobile-OS/
@@ -235,7 +248,8 @@ Raksha-Mobile-OS/
 │   │   └── RakshaLineagePartsBranding/
 │   ├── control/                # Native RakshaControl hub + WelcomeAudioService source
 │   └── scripts/                # raksha-llama-server, raksha-kali-install, openclaw-config.json
-├── oneos-patch/                # Clean source diff against official fahadalijaved/OneOS v0.5.36
+├── oneos-patch/                # Clean source diffs against official fahadalijaved/OneOS
+│   ├── raksha-mobile-os-v0.5.49.patch
 │   ├── raksha-mobile-os-v0.5.36.patch
 │   ├── os_raksha.xml
 │   ├── raksha.guards.txt
@@ -244,11 +258,11 @@ Raksha-Mobile-OS/
 └── LICENSE                     # Apache License 2.0 (for Raksha Mobile OS original code)
 ```
 
-### Applying Our Patch to Upstream OneOS `v0.5.36`
+### Applying Our Patch to Upstream OneOS `v0.5.49`
 ```bash
-git clone --depth 1 --branch v0.5.36 https://github.com/fahadalijaved/OneOS.git
+git clone --depth 1 --branch v0.5.49 https://github.com/fahadalijaved/OneOS.git
 cd OneOS
-git apply /path/to/Raksha-Mobile-OS/oneos-patch/raksha-mobile-os-v0.5.36.patch
+git apply /path/to/Raksha-Mobile-OS/oneos-patch/raksha-mobile-os-v0.5.49.patch
 cp /path/to/Raksha-Mobile-OS/oneos-patch/os_raksha.xml app-android/app/src/full/res/drawable/
 cp /path/to/Raksha-Mobile-OS/oneos-patch/os_raksha.xml app-android/guest/src/main/res/drawable/
 cp /path/to/Raksha-Mobile-OS/oneos-patch/raksha.guards.txt app-android/packages/
